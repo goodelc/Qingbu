@@ -42,6 +42,9 @@ export function MonthlySummaryCard({ summary, year, month }: MonthlySummaryCardP
             <Text
               variant="headlineSmall"
               style={[styles.amount, { color: theme.colors.primary }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
             >
               {formatAmount(summary.income)}
             </Text>
@@ -56,6 +59,9 @@ export function MonthlySummaryCard({ summary, year, month }: MonthlySummaryCardP
             <Text
               variant="headlineSmall"
               style={[styles.amount, { color: theme.colors.error }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
             >
               {formatAmount(summary.expense)}
             </Text>
@@ -78,6 +84,9 @@ export function MonthlySummaryCard({ summary, year, month }: MonthlySummaryCardP
                       : theme.colors.error,
                 },
               ]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
             >
               {formatAmount(summary.balance)}
             </Text>

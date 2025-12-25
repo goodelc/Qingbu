@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import {
   TextInput,
   Button,
@@ -8,6 +8,7 @@ import {
   SegmentedButtons,
   RadioButton,
   Card,
+  Appbar,
 } from 'react-native-paper';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -47,6 +48,7 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
   const insets = useSafeAreaInsets();
   const { addRecord, updateRecord } = useRecords({ autoLoad: false });
   const recordId = route.params?.recordId;
+  const amountInputRef = useRef<any>(null);
 
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<RecordType>('expense');
@@ -62,6 +64,11 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
   useEffect(() => {
     if (recordId) {
       loadRecord();
+    } else {
+      // 新增记录时，自动聚焦金额输入框
+      setTimeout(() => {
+        amountInputRef.current?.focus();
+      }, 300);
     }
   }, [recordId]);
 
@@ -146,11 +153,35 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
 
       if (recordId) {
         await updateRecord(recordId, recordData);
+        navigation.goBack();
       } else {
         await addRecord(recordData);
+        // 新增记录后，询问是否继续记账
+        Alert.alert(
+          '保存成功',
+          '是否继续记一笔？',
+          [
+            {
+              text: '完成',
+              style: 'cancel',
+              onPress: () => navigation.goBack(),
+            },
+            {
+              text: '继续',
+              onPress: () => {
+                // 保留类型和分类，清空金额和备注
+                setAmount('');
+                setNote('');
+                setDate(new Date());
+                // 重新聚焦金额输入框
+                setTimeout(() => {
+                  amountInputRef.current?.focus();
+                }, 100);
+              },
+            },
+          ]
+        );
       }
-
-      navigation.goBack();
     } catch (error) {
       console.error('Failed to save record:', error);
       setErrors({ submit: '保存失败，请重试' });
@@ -168,11 +199,22 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
     }
   };
 
+  // 日期快捷选择
+  const setQuickDate = (daysAgo: number) => {
+    const newDate = new Date();
+    newDate.setDate(newDate.getDate() - daysAgo);
+    setDate(newDate);
+  };
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
-      edges={['bottom']}
+      edges={['top']}
     >
+      <Appbar.Header style={{ backgroundColor: theme.colors.surface }}>
+        <Appbar.BackAction onPress={() => navigation.goBack()} />
+        <Appbar.Content title={recordId ? '编辑记录' : '记账'} />
+      </Appbar.Header>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -182,13 +224,14 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
           contentContainerStyle={[
             styles.scrollContent,
             { 
-              paddingTop: 8,
-              paddingBottom: Math.max(insets.bottom, 40) 
+              paddingTop: 16,
+              paddingBottom: Math.max(insets.bottom, 20) 
             },
           ]}
         >
           <View style={styles.form}>
             <TextInput
+              ref={amountInputRef}
               label="金额"
               value={amount}
               onChangeText={setAmount}
@@ -238,14 +281,26 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
             </View>
 
             <View style={styles.categoryContainer}>
-              <Text variant="bodyLarge" style={styles.label}>
-                分类
-                {subcategory && (
-                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                    {' '}({parentCategory}/{subcategory})
+              <View style={styles.categoryHeader}>
+                <View style={styles.categoryLabelRow}>
+                  <Text variant="bodyLarge" style={styles.label}>
+                    分类
                   </Text>
-                )}
-              </Text>
+                  {parentCategory && (
+                    <>
+                      <Text variant="bodyLarge" style={[styles.categoryName, { color: theme.colors.primary }]}>
+                        {' '}{parentCategory}
+                      </Text>
+                      {subcategory && (
+                        <Text variant="bodyMedium" style={[styles.subcategoryName, { color: theme.colors.primary }]}>
+                          {' > '}{subcategory}
+                        </Text>
+                      )}
+                      <Icon name="check-circle" size={20} color={theme.colors.primary} style={styles.checkIcon} />
+                    </>
+                  )}
+                </View>
+              </View>
               {!showSubcategories ? (
                 <View style={styles.categoryGrid} key={type}>
                   {currentCategories.map((cat) => {
@@ -312,7 +367,14 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
                             >
                               {cat}
                             </Text>
-                            {hasSubcategories && (
+                            {isSelected && (
+                              <Icon
+                                name="check-circle"
+                                size={18}
+                                color={theme.colors.primary}
+                              />
+                            )}
+                            {hasSubcategories && !isSelected && (
                               <Icon
                                 name="chevron-right"
                                 size={20}
@@ -382,6 +444,13 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
                               >
                                 {sub}
                               </Text>
+                              {isSelected && (
+                                <Icon
+                                  name="check-circle"
+                                  size={18}
+                                  color={theme.colors.primary}
+                                />
+                              )}
                             </View>
                           </Card.Content>
                         </Card>
@@ -404,6 +473,32 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
               >
                 {formatDate(date.getTime())}
               </Button>
+              <View style={styles.quickDateContainer}>
+                {['今天', '昨天', '前天'].map((label, index) => {
+                  // 计算快捷选项对应的日期
+                  const quickDate = new Date();
+                  quickDate.setDate(quickDate.getDate() - index);
+                  quickDate.setHours(0, 0, 0, 0);
+                  
+                  // 比较当前选择的日期
+                  const currentDate = new Date(date);
+                  currentDate.setHours(0, 0, 0, 0);
+                  
+                  const isActive = quickDate.getTime() === currentDate.getTime();
+                  
+                  return (
+                    <Button
+                      key={label}
+                      mode={isActive ? 'contained-tonal' : 'text'}
+                      onPress={() => setQuickDate(index)}
+                      compact
+                      style={styles.quickDateButton}
+                    >
+                      {label}
+                    </Button>
+                  );
+                })}
+              </View>
               {showDatePicker && (
                 <DateTimePicker
                   value={date}
@@ -433,17 +528,9 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
 
             <View style={styles.buttonContainer}>
               <Button
-                mode="outlined"
-                onPress={() => navigation.goBack()}
-                style={styles.button}
-                disabled={loading}
-              >
-                取消
-              </Button>
-              <Button
                 mode="contained"
                 onPress={handleSubmit}
-                style={styles.button}
+                style={styles.submitButton}
                 loading={loading}
                 disabled={loading}
               >
@@ -494,6 +581,23 @@ const styles = StyleSheet.create({
   categoryContainer: {
     marginVertical: 8,
   },
+  categoryHeader: {
+    marginBottom: 8,
+  },
+  categoryLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  categoryName: {
+    fontWeight: '600',
+  },
+  subcategoryName: {
+    fontWeight: '500',
+  },
+  checkIcon: {
+    marginLeft: 6,
+  },
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -526,19 +630,24 @@ const styles = StyleSheet.create({
   dateButton: {
     marginTop: 8,
   },
+  quickDateContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  quickDateButton: {
+    minWidth: 60,
+  },
   error: {
     marginTop: -12,
     marginBottom: 8,
     marginLeft: 12,
   },
   buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 16,
     marginTop: 24,
   },
-  button: {
-    flex: 1,
+  submitButton: {
+    width: '100%',
   },
   backButton: {
     alignSelf: 'flex-start',

@@ -44,14 +44,21 @@ export function RecordItem({
           <View style={styles.leftSection}>
             <View style={styles.header}>
               <View style={styles.categoryContainer}>
-                <Text variant="titleMedium" style={styles.category}>
-                  {parent}
-                </Text>
-                {subcategory && (
-                  <Text variant="bodySmall" style={[styles.subcategory, { color: theme.colors.onSurfaceVariant }]}>
-                    {subcategory}
+                <View style={styles.categoryRow}>
+                  <Text variant="titleMedium" style={styles.category}>
+                    {parent}
                   </Text>
-                )}
+                  {subcategory && (
+                    <>
+                      <Text variant="bodySmall" style={[styles.separator, { color: theme.colors.onSurfaceVariant }]}>
+                        {' > '}
+                      </Text>
+                      <Text variant="bodyMedium" style={[styles.subcategory, { color: theme.colors.primary }]}>
+                        {subcategory}
+                      </Text>
+                    </>
+                  )}
+                </View>
               </View>
               <AmountBadge amount={record.amount} type={record.type} size="medium" />
             </View>
@@ -107,12 +114,19 @@ const styles = StyleSheet.create({
   categoryContainer: {
     flex: 1,
   },
+  categoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
   category: {
     fontWeight: '600',
   },
+  separator: {
+    marginHorizontal: 2,
+  },
   subcategory: {
-    marginTop: 2,
-    fontSize: 12,
+    fontWeight: '500',
   },
   meta: {
     flexDirection: 'row',

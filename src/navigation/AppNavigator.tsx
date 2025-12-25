@@ -101,22 +101,13 @@ export function AppNavigator() {
         <Stack.Screen
           name="AddRecord"
           component={AddRecordScreen}
-          options={({ route }) => ({
+          options={{
             presentation: 'modal',
-            headerShown: true,
-            title: route.params?.recordId ? '编辑记录' : '记账',
-            headerStyle: {
-              backgroundColor: paperTheme.colors.surface,
-              height: 56 + insets.top, // 基础高度 + 状态栏高度
-            },
-            headerTitleStyle: {
-              fontSize: 20,
-              fontWeight: '600',
-            },
+            headerShown: false,
             contentStyle: {
               backgroundColor: paperTheme.colors.background,
             },
-          })}
+          }}
         />
       </Stack.Navigator>
     </NavigationContainer>

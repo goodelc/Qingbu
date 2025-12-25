@@ -23,6 +23,27 @@ export function formatDate(timestamp: number): string {
 }
 
 /**
+ * 格式化日期为分组标题（如"今天"、"昨天"、"2024-01-15"）
+ */
+export function formatDateGroup(timestamp: number): string {
+  const date = new Date(timestamp);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const dateOnly = new Date(date);
+  dateOnly.setHours(0, 0, 0, 0);
+
+  if (dateOnly.getTime() === today.getTime()) {
+    return '今天';
+  } else if (dateOnly.getTime() === yesterday.getTime()) {
+    return '昨天';
+  } else {
+    return format(date, 'yyyy年MM月dd日', { locale: zhCN });
+  }
+}
+
+/**
  * 格式化日期时间显示
  */
 export function formatDateTime(timestamp: number): string {
