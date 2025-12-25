@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import {
   TextInput,
@@ -6,13 +6,23 @@ import {
   Text,
   useTheme,
   SegmentedButtons,
-  Menu,
+  RadioButton,
+  Card,
 } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRecords } from '../hooks/useRecords';
 import { databaseService } from '../services/DatabaseService';
-import { CATEGORIES } from '../utils/constants';
+import {
+  EXPENSE_CATEGORIES,
+  INCOME_CATEGORIES,
+  CATEGORY_ICONS,
+  getSubcategories,
+  parseCategory,
+  formatCategory,
+  type CategoryName,
+} from '../utils/constants';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { formatDate } from '../utils/formatters';
 import type { Record, RecordType } from '../types';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -34,16 +44,18 @@ interface AddRecordScreenProps {
 
 export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { addRecord, updateRecord } = useRecords({ autoLoad: false });
   const recordId = route.params?.recordId;
 
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<RecordType>('expense');
-  const [category, setCategory] = useState(CATEGORIES[0]);
+  const [parentCategory, setParentCategory] = useState<CategoryName>(EXPENSE_CATEGORIES[0]);
+  const [subcategory, setSubcategory] = useState<string | undefined>(undefined);
+  const [showSubcategories, setShowSubcategories] = useState(false);
   const [date, setDate] = useState(new Date());
   const [note, setNote] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -53,13 +65,47 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
     }
   }, [recordId]);
 
+  // 获取当前类型对应的分类列表
+  const currentCategories = useMemo(() => {
+    return type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+  }, [type]);
+
+  // 获取当前父分类的子分类列表
+  const currentSubcategories = useMemo(() => {
+    return getSubcategories(parentCategory, type);
+  }, [parentCategory, type]);
+
+  // 当类型改变时，重置父分类和子分类
+  useEffect(() => {
+    const newCategories = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+    if (!(newCategories as readonly string[]).includes(parentCategory)) {
+      setParentCategory(newCategories[0] as CategoryName);
+      setSubcategory(undefined);
+      setShowSubcategories(false);
+    }
+  }, [type, parentCategory]);
+
   const loadRecord = async () => {
     try {
       const record = await databaseService.getRecordById(recordId!);
       if (record) {
         setAmount(record.amount.toString());
         setType(record.type);
-        setCategory(record.category);
+        // 解析分类（可能是 "父分类/子分类" 格式）
+        const { parent, subcategory: sub } = parseCategory(record.category);
+        const validCategories =
+          record.type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+        const validParent = (validCategories as readonly string[]).includes(parent)
+          ? (parent as CategoryName)
+          : (validCategories[0] as CategoryName);
+        setParentCategory(validParent);
+        // 验证子分类是否有效
+        const validSubcategories = getSubcategories(validParent, record.type);
+        if (sub && validSubcategories.includes(sub)) {
+          setSubcategory(sub);
+        } else {
+          setSubcategory(undefined);
+        }
         setDate(new Date(record.date));
         setNote(record.note || '');
       }
@@ -75,7 +121,7 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
       newErrors.amount = '请输入有效的金额';
     }
 
-    if (!category) {
+    if (!parentCategory) {
       newErrors.category = '请选择分类';
     }
 
@@ -93,7 +139,7 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
       const recordData: Omit<Record, 'id'> = {
         amount: parseFloat(amount),
         type,
-        category,
+        category: formatCategory(parentCategory, subcategory),
         date: date.getTime(),
         note: note.trim() || undefined,
       };
@@ -125,7 +171,7 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
-      edges={['top']}
+      edges={['bottom']}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -133,13 +179,15 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
       >
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { 
+              paddingTop: 8,
+              paddingBottom: Math.max(insets.bottom, 40) 
+            },
+          ]}
         >
           <View style={styles.form}>
-            <Text variant="headlineSmall" style={styles.title}>
-              {recordId ? '编辑记录' : '新增记录'}
-            </Text>
-
             <TextInput
               label="金额"
               value={amount}
@@ -162,7 +210,17 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
               </Text>
               <SegmentedButtons
                 value={type}
-                onValueChange={(value) => setType(value as RecordType)}
+                onValueChange={(value) => {
+                  const newType = value as RecordType;
+                  setType(newType);
+                  const newCategories =
+                    newType === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+                  if (!(newCategories as readonly string[]).includes(parentCategory)) {
+                    setParentCategory(newCategories[0] as CategoryName);
+                    setSubcategory(undefined);
+                    setShowSubcategories(false);
+                  }
+                }}
                 buttons={[
                   {
                     value: 'expense',
@@ -182,32 +240,156 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
             <View style={styles.categoryContainer}>
               <Text variant="bodyLarge" style={styles.label}>
                 分类
+                {subcategory && (
+                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                    {' '}({parentCategory}/{subcategory})
+                  </Text>
+                )}
               </Text>
-              <Menu
-                visible={showCategoryMenu}
-                onDismiss={() => setShowCategoryMenu(false)}
-                anchor={
+              {!showSubcategories ? (
+                <View style={styles.categoryGrid} key={type}>
+                  {currentCategories.map((cat) => {
+                    const hasSubcategories = getSubcategories(cat, type).length > 0;
+                    const isSelected = parentCategory === cat && !subcategory;
+                    return (
+                      <Card
+                        key={cat}
+                        style={[
+                          styles.categoryCard,
+                          isSelected && {
+                            backgroundColor: theme.colors.primaryContainer,
+                            borderColor: theme.colors.primary,
+                            borderWidth: 2,
+                          },
+                        ]}
+                        onPress={() => {
+                          if (hasSubcategories) {
+                            setParentCategory(cat);
+                            setShowSubcategories(true);
+                            setSubcategory(undefined);
+                          } else {
+                            setParentCategory(cat);
+                            setSubcategory(undefined);
+                            setShowSubcategories(false);
+                          }
+                        }}
+                      >
+                        <Card.Content style={styles.categoryCardContent}>
+                          <RadioButton
+                            value={cat}
+                            status={isSelected ? 'checked' : 'unchecked'}
+                            onPress={() => {
+                              if (hasSubcategories) {
+                                setParentCategory(cat);
+                                setShowSubcategories(true);
+                                setSubcategory(undefined);
+                              } else {
+                                setParentCategory(cat);
+                                setSubcategory(undefined);
+                                setShowSubcategories(false);
+                              }
+                            }}
+                          />
+                          <View style={styles.categoryInfo}>
+                            <Icon
+                              name={CATEGORY_ICONS[cat] as any}
+                              size={24}
+                              color={
+                                isSelected
+                                  ? theme.colors.primary
+                                  : theme.colors.onSurface
+                              }
+                            />
+                            <Text
+                              variant="bodyMedium"
+                              style={[
+                                styles.categoryText,
+                                isSelected && {
+                                  color: theme.colors.primary,
+                                  fontWeight: '600',
+                                },
+                              ]}
+                            >
+                              {cat}
+                            </Text>
+                            {hasSubcategories && (
+                              <Icon
+                                name="chevron-right"
+                                size={20}
+                                color={theme.colors.onSurfaceVariant}
+                              />
+                            )}
+                          </View>
+                        </Card.Content>
+                      </Card>
+                    );
+                  })}
+                </View>
+              ) : (
+                <View>
                   <Button
-                    mode="outlined"
-                    onPress={() => setShowCategoryMenu(true)}
-                    style={styles.categoryButton}
-                    icon="chevron-down"
-                  >
-                    {category}
-                  </Button>
-                }
-              >
-                {CATEGORIES.map((cat) => (
-                  <Menu.Item
-                    key={cat}
+                    mode="text"
+                    icon="arrow-left"
                     onPress={() => {
-                      setCategory(cat);
-                      setShowCategoryMenu(false);
+                      setShowSubcategories(false);
+                      setSubcategory(undefined);
                     }}
-                    title={cat}
-                  />
-                ))}
-              </Menu>
+                    style={styles.backButton}
+                  >
+                    返回
+                  </Button>
+                  <Text variant="bodyMedium" style={[styles.label, { marginTop: 8 }]}>
+                    选择 {parentCategory} 的子分类
+                  </Text>
+                  <View style={styles.categoryGrid}>
+                    {currentSubcategories.map((sub) => {
+                      const isSelected = subcategory === sub;
+                      return (
+                        <Card
+                          key={sub}
+                          style={[
+                            styles.categoryCard,
+                            isSelected && {
+                              backgroundColor: theme.colors.primaryContainer,
+                              borderColor: theme.colors.primary,
+                              borderWidth: 2,
+                            },
+                          ]}
+                          onPress={() => {
+                            setSubcategory(sub);
+                            setShowSubcategories(false);
+                          }}
+                        >
+                          <Card.Content style={styles.categoryCardContent}>
+                            <RadioButton
+                              value={sub}
+                              status={isSelected ? 'checked' : 'unchecked'}
+                              onPress={() => {
+                                setSubcategory(sub);
+                                setShowSubcategories(false);
+                              }}
+                            />
+                            <View style={styles.categoryInfo}>
+                              <Text
+                                variant="bodyMedium"
+                                style={[
+                                  styles.categoryText,
+                                  isSelected && {
+                                    color: theme.colors.primary,
+                                    fontWeight: '600',
+                                  },
+                                ]}
+                              >
+                                {sub}
+                              </Text>
+                            </View>
+                          </Card.Content>
+                        </Card>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
             </View>
 
             <View style={styles.dateContainer}>
@@ -287,6 +469,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
+    paddingBottom: 50,
   },
   form: {
     gap: 16,
@@ -311,8 +494,31 @@ const styles = StyleSheet.create({
   categoryContainer: {
     marginVertical: 8,
   },
-  categoryButton: {
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
     marginTop: 8,
+  },
+  categoryCard: {
+    width: '48%',
+    marginBottom: 8,
+  },
+  categoryCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  categoryInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginLeft: 4,
+  },
+  categoryText: {
+    flex: 1,
   },
   dateContainer: {
     marginVertical: 8,
@@ -333,6 +539,10 @@ const styles = StyleSheet.create({
   },
   button: {
     flex: 1,
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+    marginBottom: 8,
   },
 });
 

@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { FAB, Text, useTheme, ActivityIndicator } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { useRecords } from '../hooks/useRecords';
 import { RecordItem } from '../components/RecordItem';
 import { MonthlySummaryCard } from '../components/MonthlySummaryCard';
@@ -24,6 +25,13 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   const theme = useTheme();
   const { records, summary, loading, refreshRecords, deleteRecord, year, month } =
     useRecords();
+
+  // 当页面获得焦点时（从其他页面返回时）自动刷新数据
+  useFocusEffect(
+    useCallback(() => {
+      refreshRecords();
+    }, [refreshRecords])
+  );
 
   const handleAddPress = () => {
     navigation.navigate('AddRecord');

@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useTheme, MD3LightTheme, MD3DarkTheme } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '../store/useAppStore';
 import { HomeScreen } from '../screens/HomeScreen';
 import { AddRecordScreen } from '../screens/AddRecordScreen';
@@ -75,6 +76,7 @@ function MainTabs() {
 export function AppNavigator() {
   const { theme } = useAppStore();
   const paperTheme = theme === 'dark' ? MD3DarkTheme : MD3LightTheme;
+  const insets = useSafeAreaInsets();
 
   return (
     <NavigationContainer
@@ -99,11 +101,22 @@ export function AppNavigator() {
         <Stack.Screen
           name="AddRecord"
           component={AddRecordScreen}
-          options={{
+          options={({ route }) => ({
             presentation: 'modal',
             headerShown: true,
-            title: '记账',
-          }}
+            title: route.params?.recordId ? '编辑记录' : '记账',
+            headerStyle: {
+              backgroundColor: paperTheme.colors.surface,
+              height: 56 + insets.top, // 基础高度 + 状态栏高度
+            },
+            headerTitleStyle: {
+              fontSize: 20,
+              fontWeight: '600',
+            },
+            contentStyle: {
+              backgroundColor: paperTheme.colors.background,
+            },
+          })}
         />
       </Stack.Navigator>
     </NavigationContainer>

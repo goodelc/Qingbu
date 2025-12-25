@@ -2,6 +2,7 @@ import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Card, Text, IconButton, useTheme } from 'react-native-paper';
 import { formatDate, formatDateTime } from '../utils/formatters';
+import { parseCategory } from '../utils/constants';
 import { AmountBadge } from './AmountBadge';
 import type { Record } from '../types';
 
@@ -30,6 +31,9 @@ export function RecordItem({
     }
   };
 
+  // 解析分类显示
+  const { parent, subcategory } = parseCategory(record.category);
+
   return (
     <Card
       style={[styles.card, { backgroundColor: theme.colors.surface }]}
@@ -39,9 +43,16 @@ export function RecordItem({
         <View style={styles.content}>
           <View style={styles.leftSection}>
             <View style={styles.header}>
-              <Text variant="titleMedium" style={styles.category}>
-                {record.category}
-              </Text>
+              <View style={styles.categoryContainer}>
+                <Text variant="titleMedium" style={styles.category}>
+                  {parent}
+                </Text>
+                {subcategory && (
+                  <Text variant="bodySmall" style={[styles.subcategory, { color: theme.colors.onSurfaceVariant }]}>
+                    {subcategory}
+                  </Text>
+                )}
+              </View>
               <AmountBadge amount={record.amount} type={record.type} size="medium" />
             </View>
             <View style={styles.meta}>
@@ -93,8 +104,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 4,
   },
+  categoryContainer: {
+    flex: 1,
+  },
   category: {
     fontWeight: '600',
+  },
+  subcategory: {
+    marginTop: 2,
+    fontSize: 12,
   },
   meta: {
     flexDirection: 'row',
