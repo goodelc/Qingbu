@@ -51,7 +51,16 @@ export function TrendChart({ dailyStats }: TrendChartProps) {
 
   const chartHeight = 200;
   const chartWidth = screenWidth - 64; // 减去 padding
-  const barWidth = Math.max(4, (chartWidth - (dailyStats.length - 1) * 4) / dailyStats.length);
+  const gap = 2;
+  const maxBars = 30; // 最多显示30个柱子，超过则采样
+  const shouldSample = dailyStats.length > maxBars;
+  const sampledStats = shouldSample 
+    ? dailyStats.filter((_, index) => index % Math.ceil(dailyStats.length / maxBars) === 0 || index === dailyStats.length - 1)
+    : dailyStats;
+  
+  const barWidth = chartType === 'all' 
+    ? Math.max(3, (chartWidth - (sampledStats.length - 1) * gap - sampledStats.length * gap) / (sampledStats.length * 2))
+    : Math.max(6, (chartWidth - (sampledStats.length - 1) * gap) / sampledStats.length);
 
   return (
     <Card
@@ -81,56 +90,82 @@ export function TrendChart({ dailyStats }: TrendChartProps) {
         />
 
         <View style={styles.chartContainer}>
-          <View style={[styles.chart, { height: chartHeight, width: chartWidth }]}>
-            {dailyStats.map((stat, index) => {
-              const incomeHeight = (stat.income / maxValue) * chartHeight;
-              const expenseHeight = (stat.expense / maxValue) * chartHeight;
-              
-              return (
-                <View key={stat.date} style={styles.barContainer}>
-                  {(chartType === 'income' || chartType === 'all') && (
-                    <View
-                      style={[
-                        styles.bar,
-                        {
-                          height: incomeHeight,
-                          backgroundColor: theme.colors.primary,
-                          width: barWidth,
-                          marginRight: chartType === 'all' ? 2 : 0,
-                        },
-                      ]}
-                    />
-                  )}
-                  {(chartType === 'expense' || chartType === 'all') && (
-                    <View
-                      style={[
-                        styles.bar,
-                        {
-                          height: expenseHeight,
-                          backgroundColor: theme.colors.error,
-                          width: barWidth,
-                        },
-                      ]}
-                    />
-                  )}
-                </View>
-              );
-            })}
+          {/* Y轴标签 */}
+          <View style={styles.yAxisContainer}>
+            <Text variant="bodySmall" style={[styles.yAxisLabel, { color: theme.colors.onSurfaceVariant }]}>
+              {formatAmount(maxValue)}
+            </Text>
+            <Text variant="bodySmall" style={[styles.yAxisLabel, { color: theme.colors.onSurfaceVariant }]}>
+              {formatAmount(maxValue / 2)}
+            </Text>
+            <Text variant="bodySmall" style={[styles.yAxisLabel, { color: theme.colors.onSurfaceVariant }]}>
+              0
+            </Text>
           </View>
 
-          {/* X 轴标签 */}
-          <View style={styles.xAxis}>
-            {dailyStats
-              .filter((_, index) => index % Math.ceil(dailyStats.length / 5) === 0 || index === dailyStats.length - 1)
-              .map((stat) => (
-                <Text
-                  key={stat.date}
-                  variant="bodySmall"
-                  style={[styles.xAxisLabel, { color: theme.colors.onSurfaceVariant }]}
-                >
-                  {formatDate(stat.date).split('-').slice(1).join('/')}
-                </Text>
-              ))}
+          <View style={styles.chartWrapper}>
+            <View style={[styles.chart, { height: chartHeight, width: chartWidth }]}>
+              {sampledStats.map((stat, index) => {
+                const incomeHeight = maxValue > 0 ? (stat.income / maxValue) * chartHeight : 0;
+                const expenseHeight = maxValue > 0 ? (stat.expense / maxValue) * chartHeight : 0;
+                
+                return (
+                  <View key={`${stat.date}-${index}`} style={styles.barContainer}>
+                    {(chartType === 'income' || chartType === 'all') && (
+                      <View
+                        style={[
+                          styles.bar,
+                          {
+                            height: Math.max(incomeHeight, 1),
+                            backgroundColor: theme.colors.primary,
+                            width: barWidth,
+                            marginRight: chartType === 'all' ? gap : 0,
+                          },
+                        ]}
+                      />
+                    )}
+                    {(chartType === 'expense' || chartType === 'all') && (
+                      <View
+                        style={[
+                          styles.bar,
+                          {
+                            height: Math.max(expenseHeight, 1),
+                            backgroundColor: theme.colors.error,
+                            width: barWidth,
+                          },
+                        ]}
+                      />
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+
+            {/* X 轴标签 */}
+            <View style={styles.xAxis}>
+              {sampledStats.map((stat, index) => {
+                const step = Math.max(1, Math.floor(sampledStats.length / 5));
+                const shouldShow = index % step === 0 || index === sampledStats.length - 1;
+                const itemWidth = chartType === 'all' ? barWidth * 2 + gap : barWidth + gap;
+                
+                if (!shouldShow) {
+                  return <View key={`${stat.date}-spacer-${index}`} style={{ width: itemWidth }} />;
+                }
+                
+                return (
+                  <Text
+                    key={`${stat.date}-label-${index}`}
+                    variant="bodySmall"
+                    style={[
+                      styles.xAxisLabel,
+                      { color: theme.colors.onSurfaceVariant, width: itemWidth },
+                    ]}
+                  >
+                    {formatDate(stat.date).split('-').slice(1).join('/')}
+                  </Text>
+                );
+              })}
+            </View>
           </View>
         </View>
 
@@ -175,35 +210,57 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   chartContainer: {
-    alignItems: 'center',
+    flexDirection: 'row',
     marginBottom: 16,
+  },
+  yAxisContainer: {
+    justifyContent: 'space-between',
+    paddingRight: 8,
+    paddingBottom: 20,
+    height: 200,
+  },
+  yAxisLabel: {
+    fontSize: 10,
+    opacity: 0.7,
+  },
+  chartWrapper: {
+    flex: 1,
+    alignItems: 'center',
   },
   chart: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0,0,0,0.1)',
     paddingBottom: 8,
+    paddingLeft: 4,
   },
   barContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'center',
+    marginRight: 2,
   },
   bar: {
     borderRadius: 2,
-    minHeight: 2,
+    minHeight: 1,
   },
   xAxis: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     width: '100%',
     marginTop: 8,
+    paddingLeft: 4,
   },
   xAxisLabel: {
     fontSize: 10,
     opacity: 0.7,
+    textAlign: 'center',
+    minWidth: 40,
+  },
+  xAxisSpacer: {
+    minWidth: 40,
   },
   legend: {
     flexDirection: 'row',
