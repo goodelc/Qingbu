@@ -63,9 +63,9 @@ function MainTabs() {
         name="Settings"
         component={SettingsScreen}
         options={{
-          tabBarLabel: '设置',
+          tabBarLabel: '我的',
           tabBarIcon: ({ color, size }) => (
-            <Icon name="cog" color={color} size={size} />
+            <Icon name="account" color={color} size={size} />
           ),
         }}
       />

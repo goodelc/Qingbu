@@ -372,12 +372,63 @@ class DatabaseService {
   }
 
   /**
-   * 导出数据为 CSV（预留方法）
-   * TODO: 实现 CSV 导出功能
+   * 导出数据为 CSV
+   * @param startDate 开始日期（可选，Unix 时间戳毫秒）
+   * @param endDate 结束日期（可选，Unix 时间戳毫秒）
+   * @returns CSV 格式的字符串
    */
-  async exportToCSV(): Promise<string> {
-    // 预留接口，当前返回空字符串
-    return Promise.resolve('');
+  async exportToCSV(startDate?: number, endDate?: number): Promise<string> {
+    const db = this.getDb();
+    
+    let records: Record[];
+    if (startDate && endDate) {
+      records = await this.getRecordsByDateRange(startDate, endDate);
+    } else {
+      records = await this.getAllRecords();
+    }
+
+    // CSV 表头
+    const headers = ['ID', '类型', '金额', '分类', '日期', '备注'];
+    const csvRows: string[] = [headers.join(',')];
+
+    // 转义 CSV 字段（处理包含逗号、引号、换行符的内容）
+    const escapeCSV = (value: any): string => {
+      if (value === null || value === undefined) {
+        return '';
+      }
+      const str = String(value);
+      // 如果包含逗号、引号或换行符，需要用引号包裹并转义引号
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    // 格式化日期
+    const formatDateForCSV = (timestamp: number): string => {
+      const date = new Date(timestamp);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day} ${hours}:${minutes}`;
+    };
+
+    // 添加数据行
+    records.forEach((record) => {
+      const row = [
+        record.id?.toString() || '',
+        record.type === 'income' ? '收入' : '支出',
+        record.amount.toFixed(2),
+        escapeCSV(record.category),
+        formatDateForCSV(record.date),
+        escapeCSV(record.note || ''),
+      ];
+      csvRows.push(row.join(','));
+    });
+
+    return csvRows.join('\n');
   }
 
   /**
