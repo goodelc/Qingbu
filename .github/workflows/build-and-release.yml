@@ -1,9 +1,18 @@
 name: Build and Release APK
 
+# 此工作流在 GitHub Actions runner 上直接构建 Android APK
+# 不依赖 EAS Build 云服务，节省免费构建次数
+
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      skip_build:
+        description: 'Skip build (use [skip build] in commit message)'
+        required: false
+        default: 'false'
 
 jobs:
   build-and-release:
@@ -14,52 +23,111 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check if build should be skipped
+        id: check_skip
+        run: |
+          if [[ "${{ github.event.head_commit.message }}" == *"[skip build]"* ]] || [[ "${{ github.event.inputs.skip_build }}" == "true" ]]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "⏭️ Build skipped due to [skip build] in commit message or manual skip"
+            exit 0
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Setup Node.js
+        if: steps.check_skip.outputs.skip != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
+        if: steps.check_skip.outputs.skip != 'true'
         run: npm ci
 
-      - name: Setup EAS CLI
-        uses: expo/expo-github-action@v8
+      - name: Setup Java
+        if: steps.check_skip.outputs.skip != 'true'
+        uses: actions/setup-java@v4
         with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
+          distribution: 'temurin'
+          java-version: '17'
 
-      - name: Build APK with EAS
-        run: |
-          echo "Starting EAS build..."
-          npx eas-cli build --platform android --profile production --non-interactive --no-wait
+      - name: Setup Android SDK
+        if: steps.check_skip.outputs.skip != 'true'
+        uses: android-actions/setup-android@v3
 
-      - name: Get latest build ID
-        id: get_build_id
+      - name: Run expo prebuild
+        if: steps.check_skip.outputs.skip != 'true'
         run: |
-          echo "Waiting a few seconds for build to be registered..."
-          sleep 10
-          echo "Getting latest build ID..."
-          npx eas-cli build:list --platform android --limit 1 --json > build-list.json
-          BUILD_ID=$(node -p "require('./build-list.json')[0]?.id || ''")
-          if [ -z "$BUILD_ID" ] || [ "$BUILD_ID" = "null" ]; then
-            echo "Error: Could not get build ID"
-            cat build-list.json
+          echo "Generating native Android project..."
+          npx expo prebuild --platform android --clean
+
+      - name: Setup Android Keystore
+        if: steps.check_skip.outputs.skip != 'true'
+        id: setup_keystore
+        run: |
+          if [ -z "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "⚠️ Warning: ANDROID_KEYSTORE_BASE64 not set, building unsigned APK"
+            echo "unsigned=true" >> $GITHUB_OUTPUT
+          else
+            echo "Setting up signing keystore..."
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/qingbu-release-key.jks
+            echo "unsigned=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Configure Gradle Signing
+        if: steps.check_skip.outputs.skip != 'true' && steps.setup_keystore.outputs.unsigned != 'true'
+        run: |
+          cd android
+          cat >> app/build.gradle << EOF
+
+          android {
+              signingConfigs {
+                  release {
+                      storeFile file('app/qingbu-release-key.jks')
+                      storePassword '${{ secrets.ANDROID_KEYSTORE_PASSWORD }}'
+                      keyAlias '${{ secrets.ANDROID_KEY_ALIAS }}'
+                      keyPassword '${{ secrets.ANDROID_KEY_PASSWORD }}'
+                  }
+              }
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.release
+                  }
+              }
+          }
+          EOF
+          echo "✅ Signing configuration added"
+
+      - name: Build APK
+        if: steps.check_skip.outputs.skip != 'true'
+        run: |
+          cd android
+          echo "Building Release APK..."
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+          
+          if [ ! -f "app/build/outputs/apk/release/app-release.apk" ]; then
+            echo "❌ Error: APK not found after build"
             exit 1
           fi
-          echo "BUILD_ID=$BUILD_ID" >> $GITHUB_ENV
-          echo "Found build ID: $BUILD_ID"
+          
+          APK_SIZE=$(ls -lh app/build/outputs/apk/release/app-release.apk | awk '{print $5}')
+          echo "✅ APK built successfully"
+          echo "  Size: $APK_SIZE"
+          echo "  Path: app/build/outputs/apk/release/app-release.apk"
 
-      - name: Wait for build to complete
+      - name: Copy APK to workspace root
+        if: steps.check_skip.outputs.skip != 'true'
         run: |
-          echo "Waiting for build $BUILD_ID to complete..."
-          npx eas-cli build:wait --id $BUILD_ID
-
-      - name: Download APK
-        run: |
-          npx eas-cli build:download --id $BUILD_ID --output ./qingbu.apk
+          cp android/app/build/outputs/apk/release/app-release.apk ./qingbu.apk
+          APK_SIZE=$(ls -lh ./qingbu.apk | awk '{print $5}')
+          echo "✅ APK copied to workspace root"
+          echo "  File: qingbu.apk"
+          echo "  Size: $APK_SIZE"
 
       - name: Get version from app.json
+        if: steps.check_skip.outputs.skip != 'true'
         id: get_version
         run: |
           VERSION=$(node -p "require('./app.json').expo.version")
@@ -67,6 +135,7 @@ jobs:
           echo "Version: $VERSION"
 
       - name: Create GitHub Release
+        if: steps.check_skip.outputs.skip != 'true'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.get_version.outputs.version }}-${{ github.sha }}
@@ -74,15 +143,31 @@ jobs:
           body: |
             ## 轻簿 v${{ steps.get_version.outputs.version }}
             
-            ### 变更
-            - 自动构建于 commit: ${{ github.sha }}
+            ### 构建信息
+            - Commit: `${{ github.sha }}`
             - 构建时间: ${{ github.event.head_commit.timestamp }}
+            - 构建方式: GitHub Actions 本地构建
             
             ### 下载
             点击下方下载 APK 文件进行安装。
+            
+            ### 变更
+            ${{ github.event.head_commit.message }}
           files: |
             qingbu.apk
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release summary
+        if: steps.check_skip.outputs.skip != 'true'
+        run: |
+          echo "✅ Release created successfully!"
+          echo ""
+          echo "📱 Release Information:"
+          echo "  Version: v${{ steps.get_version.outputs.version }}"
+          echo "  Tag: v${{ steps.get_version.outputs.version }}-${{ github.sha }}"
+          echo "  APK: qingbu.apk"
+          echo ""
+          echo "🔗 View release: https://github.com/${{ github.repository }}/releases"

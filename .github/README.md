@@ -1,28 +1,67 @@
 # GitHub Actions 自动构建配置
 
-本项目已配置 GitHub Actions 工作流，在推送到 `main` 分支时自动构建 APK 并创建 GitHub Release。
+本项目使用 **GitHub Actions 本地构建**方案实现自动构建和发布：
+
+- **构建工作流** (`build-and-release.yml`) - 在 GitHub Actions runner 上直接构建 Android APK，不依赖 EAS Build 云服务
+
+## 工作流架构
+
+```
+Push to main → build-and-release.yml → 设置 Android 环境
+                                          ↓
+                                    安装依赖
+                                          ↓
+                                    expo prebuild
+                                          ↓
+                                    Gradle 构建
+                                          ↓
+                                    签名 APK
+                                          ↓
+                                    创建 Release
+```
 
 ## 配置步骤
 
-### 1. 获取 Expo Access Token
+### 1. 配置 Android 签名密钥（首次使用需要）
 
-1. 访问 [Expo 账号设置](https://expo.dev/accounts/[your-account]/settings/access-tokens)
-2. 点击 "Create Token"
-3. 输入 Token 名称（如：`github-actions`）
-4. 选择权限范围（至少需要 `build` 权限）
-5. 复制生成的 Token
+为了构建签名的 APK，需要配置以下 GitHub Secrets：
 
-### 2. 配置 GitHub Secrets
+1. **生成签名密钥**（在本地执行）：
+   ```bash
+   keytool -genkeypair -v -storetype PKCS12 \
+     -keystore qingbu-release-key.jks \
+     -alias qingbu-key-alias \
+     -keyalg RSA -keysize 2048 -validity 10000
+   ```
 
-1. 进入 GitHub 仓库
-2. 点击 **Settings** > **Secrets and variables** > **Actions**
-3. 点击 **New repository secret**
-4. 添加以下 Secret：
-   - **Name**: `EXPO_TOKEN`
-   - **Value**: 粘贴刚才复制的 Expo Access Token
-5. 点击 **Add secret**
+2. **将 keystore 转换为 Base64**：
+   ```bash
+   # macOS/Linux
+   base64 -i qingbu-release-key.jks | pbcopy
+   
+   # Windows (PowerShell)
+   [Convert]::ToBase64String([IO.File]::ReadAllBytes("qingbu-release-key.jks")) | clip
+   ```
 
-### 3. 验证配置
+3. **配置 GitHub Secrets**：
+   - 进入 GitHub 仓库
+   - 点击 **Settings** > **Secrets and variables** > **Actions**
+   - 点击 **New repository secret**
+   - 添加以下 Secrets：
+     - **Name**: `ANDROID_KEYSTORE_BASE64`
+       - **Value**: 粘贴 Base64 编码的 keystore
+     - **Name**: `ANDROID_KEYSTORE_PASSWORD`
+       - **Value**: Keystore 密码
+     - **Name**: `ANDROID_KEY_ALIAS`
+       - **Value**: `qingbu-key-alias`
+     - **Name**: `ANDROID_KEY_PASSWORD`
+       - **Value**: 密钥密码
+
+⚠️ **注意**：
+- 如果没有配置签名密钥，会构建未签名的 APK（仍可使用，但无法更新已安装的签名版本）
+- 密钥文件不要提交到 Git！
+
+### 2. 验证配置
 
 1. 推送到 `main` 分支：
    ```bash
@@ -32,9 +71,10 @@
 2. 查看构建状态：
    - 进入 GitHub 仓库
    - 点击 **Actions** 标签页
-   - 查看工作流运行状态
+   - 查看 `Build and Release APK` 工作流运行状态
 
-3. 构建完成后：
+3. 等待构建完成（15-25 分钟）：
+   - 构建完成后会自动创建 GitHub Release
    - 在 **Releases** 页面查看新创建的 Release
    - 下载 APK 文件
 
@@ -42,18 +82,28 @@
 
 ### 触发条件
 
-- 仅在推送到 `main` 分支时触发
-- 每次推送都会创建新的构建和 Release
+- 推送到 `main` 分支（自动触发）
+- 手动触发（workflow_dispatch）
+- 跳过构建：在提交信息中包含 `[skip build]`
 
 ### 构建流程
 
-1. 检查代码
-2. 安装依赖
-3. 使用 EAS Build 构建 Android APK（production profile）
-4. 等待构建完成（通常 10-20 分钟）
-5. 下载 APK
-6. 创建 GitHub Release
-7. 上传 APK 到 Release
+1. **环境设置**：
+   - 设置 Node.js 20
+   - 设置 Java 17
+   - 设置 Android SDK
+
+2. **项目准备**：
+   - 安装项目依赖
+   - 运行 `expo prebuild` 生成原生项目
+
+3. **构建 APK**：
+   - 配置签名（如果已配置）
+   - 使用 Gradle 构建 Release APK
+
+4. **发布**：
+   - 创建 GitHub Release
+   - 上传 APK 到 Release
 
 ### Release 标签格式
 
@@ -61,27 +111,37 @@ Release 标签格式为：`v{version}-{commit-sha}`
 
 例如：`v1.0.0-a1b2c3d4e5f6`
 
+## 优势
+
+- ✅ 不消耗 EAS Build 免费次数
+- ✅ 完全控制构建过程
+- ✅ 构建日志更详细
+- ✅ 可以自定义构建参数
+- ✅ GitHub Actions 免费账户通常足够使用
+
 ## 注意事项
 
 - 确保 `app.json` 中的版本号正确
-- EAS Build 构建需要时间，请耐心等待
-- 首次运行可能需要生成 Android Keystore（EAS 会自动处理）
+- 构建需要时间，请耐心等待（通常 15-25 分钟）
+- 首次运行需要配置签名密钥
 - 如果构建失败，检查 GitHub Actions 日志获取详细信息
 
 ## 故障排除
 
 ### 构建失败
 
-1. 检查 `EXPO_TOKEN` 是否正确配置
-2. 确认 Expo 项目已正确链接到 GitHub
-3. 查看 GitHub Actions 日志获取详细错误信息
+1. 检查 Android SDK 是否正确安装
+2. 查看 GitHub Actions 日志获取详细错误信息
+3. 确认所有依赖都已正确安装
 
-### 无法获取构建 ID
+### APK 签名问题
 
-- 等待时间可能需要调整（当前为 10 秒）
-- 检查 EAS Build 服务状态
+1. 检查 GitHub Secrets 是否正确配置
+2. 确认 keystore 文件格式正确（PKCS12）
+3. 验证密钥别名和密码是否正确
 
 ### Release 创建失败
 
-- 确认仓库有创建 Release 的权限
-- 检查 `GITHUB_TOKEN` 是否可用（通常自动提供）
+1. 确认仓库有创建 Release 的权限
+2. 检查 `GITHUB_TOKEN` 是否可用（通常自动提供）
+3. 确认 tag 名称唯一（避免重复发布）
