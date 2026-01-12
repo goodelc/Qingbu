@@ -1,4 +1,4 @@
-name: Build and Release APK
+name: Build and Release
 
 # 此工作流在 GitHub Actions runner 上直接构建 Android APK
 # 不依赖 EAS Build 云服务，节省免费构建次数
@@ -20,7 +20,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write  # 需要写入权限来创建 Release
-      id-token: read   # 可选，用于某些认证场景
     
     steps:
       - name: Checkout repository
