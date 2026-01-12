@@ -18,10 +18,15 @@ jobs:
   build-and-release:
     name: Build APK and Create Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # 需要写入权限来创建 Release
+      id-token: read   # 可选，用于某些认证场景
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整历史，某些操作可能需要
 
       - name: Check if build should be skipped
         id: check_skip

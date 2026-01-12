@@ -142,6 +142,23 @@ Release 标签格式为：`v{version}-{commit-sha}`
 
 ### Release 创建失败
 
-1. 确认仓库有创建 Release 的权限
-2. 检查 `GITHUB_TOKEN` 是否可用（通常自动提供）
-3. 确认 tag 名称唯一（避免重复发布）
+如果遇到 403 错误，请检查：
+
+1. **仓库 Actions 权限设置**：
+   - 进入 GitHub 仓库
+   - 点击 **Settings** > **Actions** > **General**
+   - 在 **Workflow permissions** 部分
+   - 选择 **Read and write permissions**（读写权限）
+   - 勾选 **Allow GitHub Actions to create and approve pull requests**（如果需要）
+
+2. **确认工作流权限配置**：
+   - 工作流已配置 `permissions: contents: write`
+   - 这允许工作流创建 Release
+
+3. **检查 tag 是否已存在**：
+   - 如果 tag 已存在，需要先删除或使用不同的 tag 名称
+   - 工作流使用格式：`v{version}-{commit-sha}`，通常不会重复
+
+4. **确认 GITHUB_TOKEN 可用**：
+   - `GITHUB_TOKEN` 由 GitHub 自动提供
+   - 如果仓库禁用了 Actions，需要启用
