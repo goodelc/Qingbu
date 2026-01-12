@@ -1,0 +1,88 @@
+name: Build and Release APK
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-release:
+    name: Build APK and Create Release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build APK with EAS
+        run: |
+          echo "Starting EAS build..."
+          npx eas-cli build --platform android --profile production --non-interactive --no-wait
+
+      - name: Get latest build ID
+        id: get_build_id
+        run: |
+          echo "Waiting a few seconds for build to be registered..."
+          sleep 10
+          echo "Getting latest build ID..."
+          npx eas-cli build:list --platform android --limit 1 --json > build-list.json
+          BUILD_ID=$(node -p "require('./build-list.json')[0]?.id || ''")
+          if [ -z "$BUILD_ID" ] || [ "$BUILD_ID" = "null" ]; then
+            echo "Error: Could not get build ID"
+            cat build-list.json
+            exit 1
+          fi
+          echo "BUILD_ID=$BUILD_ID" >> $GITHUB_ENV
+          echo "Found build ID: $BUILD_ID"
+
+      - name: Wait for build to complete
+        run: |
+          echo "Waiting for build $BUILD_ID to complete..."
+          npx eas-cli build:wait --id $BUILD_ID
+
+      - name: Download APK
+        run: |
+          npx eas-cli build:download --id $BUILD_ID --output ./qingbu.apk
+
+      - name: Get version from app.json
+        id: get_version
+        run: |
+          VERSION=$(node -p "require('./app.json').expo.version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.get_version.outputs.version }}-${{ github.sha }}
+          name: Release v${{ steps.get_version.outputs.version }}
+          body: |
+            ## 轻簿 v${{ steps.get_version.outputs.version }}
+            
+            ### 变更
+            - 自动构建于 commit: ${{ github.sha }}
+            - 构建时间: ${{ github.event.head_commit.timestamp }}
+            
+            ### 下载
+            点击下方下载 APK 文件进行安装。
+          files: |
+            qingbu.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
