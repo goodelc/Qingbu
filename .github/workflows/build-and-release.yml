@@ -71,7 +71,7 @@ jobs:
             echo "unsigned=true" >> $GITHUB_OUTPUT
           else
             echo "Setting up signing keystore..."
-            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/qingbu-release-key.jks
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/qingbu-release-key.jks
             echo "unsigned=false" >> $GITHUB_OUTPUT
           fi
 
@@ -84,7 +84,7 @@ jobs:
           android {
               signingConfigs {
                   release {
-                      storeFile file('app/qingbu-release-key.jks')
+                      storeFile file('../qingbu-release-key.jks')
                       storePassword '${{ secrets.ANDROID_KEYSTORE_PASSWORD }}'
                       keyAlias '${{ secrets.ANDROID_KEY_ALIAS }}'
                       keyPassword '${{ secrets.ANDROID_KEY_PASSWORD }}'
