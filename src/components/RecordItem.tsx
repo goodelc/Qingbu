@@ -38,6 +38,8 @@ export function RecordItem({
     <Card
       style={[styles.card, { backgroundColor: theme.colors.surface }]}
       onPress={handlePress}
+      mode="outlined"
+      contentStyle={styles.cardContent}
     >
       <Card.Content>
         <View style={styles.content}>
@@ -95,12 +97,18 @@ export function RecordItem({
 const styles = StyleSheet.create({
   card: {
     marginHorizontal: 16,
-    marginVertical: 4,
+    marginVertical: 3,
+    elevation: 0,
+  },
+  cardContent: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
   content: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingVertical: 4,
   },
   leftSection: {
     flex: 1,
@@ -109,7 +117,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   categoryContainer: {
     flex: 1,
@@ -120,25 +128,31 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   category: {
-    fontWeight: '600',
+    fontWeight: '500',
+    fontSize: 15,
   },
   separator: {
-    marginHorizontal: 2,
+    marginHorizontal: 4,
+    opacity: 0.5,
   },
   subcategory: {
-    fontWeight: '500',
+    fontWeight: '400',
+    fontSize: 13,
   },
   meta: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginTop: 2,
   },
   date: {
-    fontSize: 12,
+    fontSize: 11,
+    opacity: 0.6,
   },
   note: {
-    fontSize: 12,
+    fontSize: 11,
     flex: 1,
+    opacity: 0.6,
   },
   deleteButton: {
     margin: 0,

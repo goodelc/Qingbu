@@ -314,13 +314,16 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 64,
+    paddingVertical: 48,
   },
   emptyText: {
-    marginBottom: 8,
+    marginBottom: 6,
+    fontSize: 15,
+    opacity: 0.6,
   },
   emptyHint: {
-    opacity: 0.7,
+    fontSize: 13,
+    opacity: 0.5,
   },
   fabContainer: {
     position: 'absolute',
@@ -332,12 +335,14 @@ const styles = StyleSheet.create({
   },
   dateHeader: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginTop: 8,
-    marginBottom: 4,
+    paddingVertical: 6,
+    marginTop: 6,
+    marginBottom: 2,
   },
   dateHeaderText: {
-    fontWeight: '600',
+    fontWeight: '500',
+    fontSize: 13,
+    opacity: 0.8,
   },
 });
 

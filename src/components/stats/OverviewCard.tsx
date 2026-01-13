@@ -120,23 +120,24 @@ export function OverviewCard({ summary, comparison }: OverviewCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    elevation: 2,
+    elevation: 0,
+    borderWidth: 0,
   },
   content: {
-    paddingVertical: 16,
+    paddingVertical: 12,
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   item: {
     alignItems: 'center',
     flex: 1,
   },
   incomeItem: {
-    borderRightWidth: 1,
-    borderRightColor: 'rgba(0,0,0,0.1)',
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderRightColor: 'rgba(0,0,0,0.08)',
   },
   expenseItem: {
     // 右侧项
@@ -145,17 +146,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   label: {
-    marginBottom: 8,
-    opacity: 0.8,
+    marginBottom: 6,
+    fontSize: 12,
+    opacity: 0.7,
   },
   amount: {
-    fontWeight: 'bold',
-    marginBottom: 4,
+    fontWeight: '600',
+    marginBottom: 2,
+    fontSize: 20,
   },
   changeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: 2,
   },
 });
 

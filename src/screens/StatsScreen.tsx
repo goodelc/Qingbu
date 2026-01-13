@@ -151,17 +151,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 16,
+    paddingBottom: 12,
   },
   emptyContainer: {
-    padding: 32,
+    padding: 24,
     alignItems: 'center',
   },
   emptyText: {
-    marginBottom: 8,
-    opacity: 0.7,
+    marginBottom: 6,
+    fontSize: 15,
+    opacity: 0.6,
   },
   emptyHint: {
+    fontSize: 13,
     opacity: 0.5,
   },
 });

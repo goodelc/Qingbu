@@ -196,28 +196,31 @@ export function CategoryPieChart({
 
 const styles = StyleSheet.create({
   card: {
-    elevation: 2,
+    elevation: 0,
+    borderWidth: 0,
   },
   title: {
-    fontWeight: '600',
-    marginBottom: 16,
+    fontWeight: '500',
+    marginBottom: 12,
+    fontSize: 15,
   },
   emptyText: {
     textAlign: 'center',
-    paddingVertical: 16,
-    opacity: 0.7,
+    paddingVertical: 12,
+    fontSize: 13,
+    opacity: 0.6,
   },
   chartContainer: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   chartItem: {
-    marginBottom: 12,
+    marginBottom: 10,
   },
   chartItemHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 5,
   },
   chartItemLeft: {
     flexDirection: 'row',
@@ -225,9 +228,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   colorIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     marginRight: 8,
   },
   icon: {
@@ -235,6 +238,7 @@ const styles = StyleSheet.create({
   },
   categoryName: {
     flex: 1,
+    fontSize: 14,
   },
   chartItemRight: {
     alignItems: 'flex-end',
@@ -242,33 +246,37 @@ const styles = StyleSheet.create({
   amount: {
     fontWeight: '600',
     marginBottom: 2,
+    fontSize: 14,
   },
   percentage: {
-    opacity: 0.7,
+    fontSize: 11,
+    opacity: 0.6,
   },
   progressContainer: {
-    height: 8,
-    backgroundColor: 'rgba(0,0,0,0.1)',
-    borderRadius: 4,
+    height: 4,
+    backgroundColor: 'rgba(0,0,0,0.08)',
+    borderRadius: 2,
     overflow: 'hidden',
   },
   progressBar: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 2,
   },
   totalContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.1)',
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(0,0,0,0.08)',
   },
   totalLabel: {
-    opacity: 0.8,
+    fontSize: 13,
+    opacity: 0.7,
   },
   totalAmount: {
-    fontWeight: 'bold',
+    fontWeight: '600',
+    fontSize: 18,
   },
 });
 

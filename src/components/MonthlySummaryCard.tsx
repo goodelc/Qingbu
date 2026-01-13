@@ -99,11 +99,14 @@ export function MonthlySummaryCard({ summary, year, month }: MonthlySummaryCardP
 
 const styles = StyleSheet.create({
   card: {
-    elevation: 2,
+    elevation: 0,
+    borderWidth: 0,
   },
   title: {
-    marginBottom: 16,
-    fontWeight: '600',
+    marginBottom: 12,
+    fontWeight: '500',
+    fontSize: 14,
+    opacity: 0.7,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -115,11 +118,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   label: {
-    marginBottom: 4,
-    opacity: 0.8,
+    marginBottom: 6,
+    fontSize: 12,
+    opacity: 0.7,
   },
   amount: {
-    fontWeight: 'bold',
+    fontWeight: '600',
+    fontSize: 18,
   },
 });
 

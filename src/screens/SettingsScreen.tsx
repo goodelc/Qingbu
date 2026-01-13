@@ -371,11 +371,12 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 8,
+    paddingTop: 12,
+    paddingBottom: 6,
   },
   title: {
-    fontWeight: '600',
+    fontWeight: '500',
+    fontSize: 20,
   },
   scrollView: {
     flex: 1,

@@ -408,6 +408,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingBottom: 32,
+    paddingTop: 12,
   },
   card: {
     marginBottom: 16,

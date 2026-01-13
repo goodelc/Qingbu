@@ -160,9 +160,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
+    paddingHorizontal: 4,
+    paddingVertical: 6,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   monthContainer: {
     flex: 1,
@@ -170,12 +170,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   monthText: {
-    fontWeight: '600',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    fontWeight: '500',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    fontSize: 15,
   },
   todayButton: {
-    marginLeft: -8,
+    marginLeft: -4,
   },
 });
 

@@ -118,25 +118,28 @@ export function CategoryRanking({
 
 const styles = StyleSheet.create({
   card: {
-    elevation: 2,
+    elevation: 0,
+    borderWidth: 0,
   },
   title: {
-    fontWeight: '600',
-    marginBottom: 16,
+    fontWeight: '500',
+    marginBottom: 12,
+    fontSize: 15,
   },
   emptyText: {
     textAlign: 'center',
-    paddingVertical: 16,
-    opacity: 0.7,
+    paddingVertical: 12,
+    fontSize: 13,
+    opacity: 0.6,
   },
   rankingItem: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   rankHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   rankLeft: {
     flexDirection: 'row',
@@ -144,43 +147,48 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   rankNumber: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 10,
   },
   rankNumberText: {
     color: 'white',
-    fontWeight: 'bold',
+    fontWeight: '600',
+    fontSize: 11,
   },
   icon: {
-    marginRight: 12,
+    marginRight: 10,
   },
   categoryInfo: {
     flex: 1,
   },
   categoryName: {
-    fontWeight: '600',
+    fontWeight: '500',
     marginBottom: 2,
+    fontSize: 14,
   },
   count: {
-    opacity: 0.7,
+    fontSize: 11,
+    opacity: 0.6,
   },
   amountContainer: {
     alignItems: 'flex-end',
   },
   amount: {
-    fontWeight: 'bold',
+    fontWeight: '600',
     marginBottom: 2,
+    fontSize: 15,
   },
   percentage: {
-    opacity: 0.7,
+    fontSize: 11,
+    opacity: 0.6,
   },
   progressBar: {
-    height: 6,
-    borderRadius: 3,
+    height: 4,
+    borderRadius: 2,
   },
 });
 

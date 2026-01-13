@@ -6,6 +6,7 @@
     "start": "expo start",
     "start:lan": "expo start --lan",
     "start:tunnel": "expo start --tunnel",
+    "start:host": "expo start --host tunnel",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
