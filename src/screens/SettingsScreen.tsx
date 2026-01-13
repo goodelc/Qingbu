@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Platform, Linking, PermissionsAndroid } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Platform, Linking } from 'react-native';
 import { List, Switch, Text, useTheme, Divider, Button, Dialog, Portal, RadioButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppStore } from '../store/useAppStore';
 import { databaseService } from '../services/DatabaseService';
+import { checkAndRequestFilePermissions } from '../utils/permissions';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 
@@ -24,37 +25,13 @@ export function SettingsScreen() {
     }
 
     try {
-      // 检查权限状态
-      const hasReadPermission = await PermissionsAndroid.check(
-        PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE
-      );
-      const hasWritePermission = await PermissionsAndroid.check(
-        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
-      );
-
-      if (hasReadPermission && hasWritePermission) {
-        return true;
-      }
-
-      // 请求权限
-      const granted = await PermissionsAndroid.requestMultiple([
-        PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
-        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-      ]);
-
-      const readGranted = granted[PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE] === PermissionsAndroid.RESULTS.GRANTED;
-      const writeGranted = granted[PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE] === PermissionsAndroid.RESULTS.GRANTED;
-
-      if (readGranted && writeGranted) {
-        return true;
-      }
-
-      // 权限被拒绝
-      if (granted[PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE] === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN ||
-          granted[PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE] === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
+      const hasPermission = await checkAndRequestFilePermissions();
+      
+      if (!hasPermission) {
+        // 权限被拒绝，显示提示
         Alert.alert(
           '需要文件权限',
-          '导出功能需要文件访问权限。请在系统设置中手动授予权限。',
+          '导出功能需要文件访问权限才能保存文件。请在系统设置中授予权限。',
           [
             { text: '取消', style: 'cancel' },
             {
@@ -65,17 +42,11 @@ export function SettingsScreen() {
             },
           ]
         );
-      } else {
-        Alert.alert(
-          '需要文件权限',
-          '导出功能需要文件访问权限才能保存文件。',
-          [{ text: '确定' }]
-        );
       }
-
-      return false;
+      
+      return hasPermission;
     } catch (error) {
-      console.error('权限请求失败:', error);
+      console.error('权限检查失败:', error);
       return false;
     }
   };
@@ -83,15 +54,19 @@ export function SettingsScreen() {
   const handleExport = async () => {
     try {
       setIsExporting(true);
+      console.log('开始导出数据，范围:', exportRange);
 
       // 检查并请求权限（Android）
       if (Platform.OS === 'android') {
+        console.log('检查 Android 权限...');
         const hasPermission = await checkAndRequestPermissions();
         if (!hasPermission) {
+          console.log('权限检查失败，取消导出');
           setIsExporting(false);
           setExportDialogVisible(false);
           return;
         }
+        console.log('权限检查通过');
       }
 
       // 计算日期范围
@@ -111,10 +86,14 @@ export function SettingsScreen() {
       }
 
       // 导出 CSV
+      console.log('开始从数据库导出 CSV...');
       const csvContent = await databaseService.exportToCSV(startDate, endDate);
+      console.log('CSV 导出完成，长度:', csvContent.length);
 
       if (!csvContent || csvContent.trim().length === 0) {
+        console.log('没有可导出的数据');
         Alert.alert('提示', '没有可导出的数据');
+        setIsExporting(false);
         setExportDialogVisible(false);
         return;
       }
@@ -136,63 +115,95 @@ export function SettingsScreen() {
 
       // 保存文件
       const fileUri = `${baseDirectory}${fileName}`;
+      console.log('准备保存文件到:', fileUri);
       
       // 确保目录存在
+      console.log('检查目录是否存在...');
       const dirInfo = await FileSystem.getInfoAsync(baseDirectory);
       if (!dirInfo || !dirInfo.exists) {
         throw new Error('文件目录不存在或无法访问');
       }
+      console.log('目录检查通过');
 
       // 添加 UTF-8 BOM 以确保 Excel 等软件能正确识别中文编码
       // BOM (Byte Order Mark) 是 UTF-8 编码的标识符
       const BOM = '\uFEFF';
       const csvWithBOM = BOM + csvContent;
 
+      console.log('开始写入文件...');
       try {
         await FileSystem.writeAsStringAsync(fileUri, csvWithBOM, {
           encoding: FileSystem.EncodingType.UTF8,
         });
+        console.log('文件写入成功（带 BOM）');
       } catch (writeError) {
         // 如果带 BOM 写入失败，尝试不带 BOM
         console.warn('带 BOM 写入失败，尝试不带 BOM:', writeError);
         await FileSystem.writeAsStringAsync(fileUri, csvContent, {
           encoding: FileSystem.EncodingType.UTF8,
         });
+        console.log('文件写入成功（不带 BOM）');
       }
 
       // 验证文件是否成功创建
+      console.log('验证文件是否创建成功...');
       const fileInfo = await FileSystem.getInfoAsync(fileUri);
       if (!fileInfo.exists) {
         throw new Error('文件创建失败');
       }
+      console.log('文件验证通过，大小:', fileInfo.size);
 
       // 分享文件
+      console.log('检查分享功能是否可用...');
       const isAvailable = await Sharing.isAvailableAsync();
+      console.log('分享功能可用:', isAvailable);
+
       if (isAvailable) {
+        console.log('开始分享文件...');
         try {
-          await Sharing.shareAsync(fileUri, {
+          // 添加超时保护，避免分享对话框一直等待
+          const sharePromise = Sharing.shareAsync(fileUri, {
             mimeType: 'text/csv',
             dialogTitle: '导出记账数据',
           });
+
+          const shareTimeoutPromise = new Promise<{ action: string }>((_, reject) => {
+            setTimeout(() => reject(new Error('分享操作超时')), 30000); // 30秒超时
+          });
+
+          await Promise.race([sharePromise, shareTimeoutPromise]);
+          console.log('分享成功');
           Alert.alert('成功', '数据已导出并准备分享');
-        } catch (shareError) {
-          // 如果分享失败，尝试使用 UTI
-          try {
-            await Sharing.shareAsync(fileUri, {
-              mimeType: 'text/comma-separated-values',
-              dialogTitle: '导出记账数据',
-            });
-            Alert.alert('成功', '数据已导出并准备分享');
-          } catch (shareError2) {
-            // 如果分享完全失败，显示文件路径
-            Alert.alert('成功', `数据已导出到：\n${fileUri}\n\n如果无法分享，请手动复制文件。`);
+        } catch (shareError: any) {
+          console.warn('分享失败，尝试备用方式:', shareError);
+          
+          // 如果分享失败或超时，尝试使用备用 MIME 类型
+          if (!shareError.message?.includes('超时')) {
+            try {
+              await Sharing.shareAsync(fileUri, {
+                mimeType: 'text/comma-separated-values',
+                dialogTitle: '导出记账数据',
+              });
+              console.log('备用分享方式成功');
+              Alert.alert('成功', '数据已导出并准备分享');
+            } catch (shareError2) {
+              console.error('备用分享方式也失败:', shareError2);
+              // 如果分享完全失败，显示文件路径
+              Alert.alert('成功', `数据已导出到：\n${fileUri}\n\n如果无法分享，请手动复制文件。`);
+            }
+          } else {
+            // 超时情况，直接显示文件路径
+            console.log('分享超时，显示文件路径');
+            Alert.alert('成功', `数据已导出到：\n${fileUri}\n\n分享操作超时，请手动访问文件。`);
           }
         }
       } else {
         // 如果不支持分享，显示文件路径
+        console.log('分享功能不可用，显示文件路径');
         Alert.alert('成功', `数据已导出到：\n${fileUri}`);
       }
 
+      console.log('导出流程完成');
       setExportDialogVisible(false);
     } catch (error) {
       console.error('导出失败:', error);

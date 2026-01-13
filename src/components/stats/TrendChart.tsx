@@ -51,16 +51,19 @@ export function TrendChart({ dailyStats }: TrendChartProps) {
 
   const chartHeight = 200;
   const chartWidth = screenWidth - 64; // 减去 padding
-  const gap = 2;
+  const gap = 3; // 增加柱子之间的间距
   const maxBars = 30; // 最多显示30个柱子，超过则采样
   const shouldSample = dailyStats.length > maxBars;
   const sampledStats = shouldSample 
     ? dailyStats.filter((_, index) => index % Math.ceil(dailyStats.length / maxBars) === 0 || index === dailyStats.length - 1)
     : dailyStats;
   
+  // 调整柱子宽度，让柱子更细
+  // 全部模式：每个柱子对（收入+支出）的总宽度更小
+  // 单独模式：单个柱子宽度更小
   const barWidth = chartType === 'all' 
-    ? Math.max(3, (chartWidth - (sampledStats.length - 1) * gap - sampledStats.length * gap) / (sampledStats.length * 2))
-    : Math.max(6, (chartWidth - (sampledStats.length - 1) * gap) / sampledStats.length);
+    ? Math.max(2, (chartWidth - (sampledStats.length - 1) * gap - sampledStats.length * gap) / (sampledStats.length * 2))
+    : Math.max(3, (chartWidth - (sampledStats.length - 1) * gap) / sampledStats.length);
 
   return (
     <Card
@@ -240,7 +243,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'center',
-    marginRight: 2,
+    marginRight: 3, // 增加容器之间的间距
   },
   bar: {
     borderRadius: 2,
