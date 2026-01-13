@@ -10,10 +10,14 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { AddRecordScreen } from '../screens/AddRecordScreen';
 import { StatsScreen } from '../screens/StatsScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { RecurringItemsScreen } from '../screens/RecurringItemsScreen';
+import { AddRecurringItemScreen } from '../screens/AddRecurringItemScreen';
 
 export type RootStackParamList = {
   MainTabs: undefined;
   AddRecord: { recordId?: number } | undefined;
+  RecurringItems: undefined;
+  AddRecurringItem: { itemId?: number } | undefined;
 };
 
 export type MainTabParamList = {
@@ -101,6 +105,27 @@ export function AppNavigator() {
         <Stack.Screen
           name="AddRecord"
           component={AddRecordScreen}
+          options={{
+            presentation: 'modal',
+            headerShown: false,
+            contentStyle: {
+              backgroundColor: paperTheme.colors.background,
+            },
+          }}
+        />
+        <Stack.Screen
+          name="RecurringItems"
+          component={RecurringItemsScreen}
+          options={{
+            headerShown: false,
+            contentStyle: {
+              backgroundColor: paperTheme.colors.background,
+            },
+          }}
+        />
+        <Stack.Screen
+          name="AddRecurringItem"
+          component={AddRecurringItemScreen}
           options={{
             presentation: 'modal',
             headerShown: false,

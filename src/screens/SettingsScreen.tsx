@@ -2,16 +2,27 @@ import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Platform, Linking } from 'react-native';
 import { List, Switch, Text, useTheme, Divider, Button, Dialog, Portal, RadioButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { useAppStore } from '../store/useAppStore';
 import { databaseService } from '../services/DatabaseService';
 import { checkAndRequestFilePermissions } from '../utils/permissions';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import type { CompositeNavigationProp } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList, MainTabParamList } from '../navigation/AppNavigator';
+
+type SettingsScreenNavigationProp = CompositeNavigationProp<
+  BottomTabNavigationProp<MainTabParamList, 'Settings'>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
 type ExportRange = 'all' | 'month' | 'year' | 'custom';
 
 export function SettingsScreen() {
   const theme = useTheme();
+  const navigation = useNavigation<SettingsScreenNavigationProp>();
   const { theme: appTheme, toggleTheme } = useAppStore();
   const isDark = appTheme === 'dark';
   const [exportDialogVisible, setExportDialogVisible] = useState(false);
@@ -275,6 +286,12 @@ export function SettingsScreen() {
 
         <List.Section>
           <List.Subheader>数据</List.Subheader>
+          <List.Item
+            title="固定收支"
+            description="管理固定收入和支出项目"
+            left={(props) => <List.Icon {...props} icon="repeat" />}
+            onPress={() => navigation.navigate('RecurringItems')}
+          />
           <List.Item
             title="数据导出"
             description="导出记账数据为 CSV 文件"

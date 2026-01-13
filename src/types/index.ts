@@ -43,3 +43,27 @@ export interface ComparisonData {
   balanceChangePercent: number;
 }
 
+// 固定收支相关类型
+export type PeriodType = 'monthly' | 'weekly' | 'daily';
+
+export interface RecurringItem {
+  id?: number;
+  name: string;
+  amount: number;
+  type: RecordType;
+  category: Category;
+  periodType: PeriodType;
+  periodDay?: number; // 每月几号（1-31），仅用于 monthly 类型
+  note?: string;
+  enabled: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface RecurringRecord {
+  id?: number;
+  recurringItemId: number;
+  recordId: number;
+  targetDate: number; // 目标日期（年月日，用于判断是否已创建）
+  createdAt: number;
+}

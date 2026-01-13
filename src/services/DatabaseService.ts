@@ -1,5 +1,5 @@
 import { openDatabaseAsync, SQLiteDatabase } from 'expo-sqlite';
-import type { Record, MonthlySummary, CategoryStat, DailyStat, ComparisonData } from '../types';
+import type { Record, MonthlySummary, CategoryStat, DailyStat, ComparisonData, RecurringItem, RecurringRecord } from '../types';
 import { getMonthRange } from '../utils/formatters';
 import { parseCategory } from '../utils/constants';
 
@@ -27,6 +27,35 @@ class DatabaseService {
           category TEXT NOT NULL,
           date INTEGER NOT NULL,
           note TEXT
+        );
+      `);
+
+      // 创建 recurring_items 表（固定收支项目）
+      await this.db.execAsync(`
+        CREATE TABLE IF NOT EXISTS recurring_items (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          amount REAL NOT NULL,
+          type TEXT CHECK(type IN ('income', 'expense')) NOT NULL,
+          category TEXT NOT NULL,
+          period_type TEXT NOT NULL,
+          period_day INTEGER,
+          note TEXT,
+          enabled INTEGER DEFAULT 1,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+      `);
+
+      // 创建 recurring_records 表（追踪已创建的记录）
+      await this.db.execAsync(`
+        CREATE TABLE IF NOT EXISTS recurring_records (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          recurring_item_id INTEGER NOT NULL,
+          record_id INTEGER NOT NULL,
+          target_date INTEGER NOT NULL,
+          created_at INTEGER NOT NULL,
+          UNIQUE(recurring_item_id, target_date)
         );
       `);
 
@@ -429,6 +458,283 @@ class DatabaseService {
     });
 
     return csvRows.join('\n');
+  }
+
+  // ==================== 固定收支相关方法 ====================
+
+  /**
+   * 添加固定收支项目
+   */
+  async addRecurringItem(item: Omit<RecurringItem, 'id' | 'createdAt' | 'updatedAt'>): Promise<number> {
+    const db = this.getDb();
+    const now = Date.now();
+    const result = await db.runAsync(
+      `INSERT INTO recurring_items (name, amount, type, category, period_type, period_day, note, enabled, created_at, updated_at) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        item.name,
+        item.amount,
+        item.type,
+        item.category,
+        item.periodType,
+        item.periodDay || null,
+        item.note || null,
+        item.enabled ? 1 : 0,
+        now,
+        now,
+      ]
+    );
+    return result.lastInsertRowId;
+  }
+
+  /**
+   * 获取所有固定收支项目
+   */
+  async getRecurringItems(type?: 'income' | 'expense'): Promise<RecurringItem[]> {
+    const db = this.getDb();
+    let query = 'SELECT * FROM recurring_items';
+    const params: any[] = [];
+
+    if (type) {
+      query += ' WHERE type = ?';
+      params.push(type);
+    }
+
+    query += ' ORDER BY created_at DESC';
+
+    const items = await db.getAllAsync<any>(query, params);
+    return items.map((item) => ({
+      id: item.id,
+      name: item.name,
+      amount: item.amount,
+      type: item.type,
+      category: item.category,
+      periodType: item.period_type,
+      periodDay: item.period_day,
+      note: item.note,
+      enabled: item.enabled === 1,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at,
+    }));
+  }
+
+  /**
+   * 获取启用的固定收支项目
+   */
+  async getEnabledRecurringItems(): Promise<RecurringItem[]> {
+    const db = this.getDb();
+    const items = await db.getAllAsync<any>(
+      'SELECT * FROM recurring_items WHERE enabled = 1 ORDER BY created_at DESC'
+    );
+    return items.map((item) => ({
+      id: item.id,
+      name: item.name,
+      amount: item.amount,
+      type: item.type,
+      category: item.category,
+      periodType: item.period_type,
+      periodDay: item.period_day,
+      note: item.note,
+      enabled: item.enabled === 1,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at,
+    }));
+  }
+
+  /**
+   * 根据 ID 获取固定收支项目
+   */
+  async getRecurringItemById(id: number): Promise<RecurringItem | null> {
+    const db = this.getDb();
+    const item = await db.getFirstAsync<any>(
+      'SELECT * FROM recurring_items WHERE id = ?',
+      [id]
+    );
+    if (!item) return null;
+    return {
+      id: item.id,
+      name: item.name,
+      amount: item.amount,
+      type: item.type,
+      category: item.category,
+      periodType: item.period_type,
+      periodDay: item.period_day,
+      note: item.note,
+      enabled: item.enabled === 1,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at,
+    };
+  }
+
+  /**
+   * 更新固定收支项目
+   */
+  async updateRecurringItem(id: number, item: Partial<Omit<RecurringItem, 'id' | 'createdAt'>>): Promise<void> {
+    const db = this.getDb();
+    const updates: string[] = [];
+    const values: any[] = [];
+
+    if (item.name !== undefined) {
+      updates.push('name = ?');
+      values.push(item.name);
+    }
+    if (item.amount !== undefined) {
+      updates.push('amount = ?');
+      values.push(item.amount);
+    }
+    if (item.type !== undefined) {
+      updates.push('type = ?');
+      values.push(item.type);
+    }
+    if (item.category !== undefined) {
+      updates.push('category = ?');
+      values.push(item.category);
+    }
+    if (item.periodType !== undefined) {
+      updates.push('period_type = ?');
+      values.push(item.periodType);
+    }
+    if (item.periodDay !== undefined) {
+      updates.push('period_day = ?');
+      values.push(item.periodDay || null);
+    }
+    if (item.note !== undefined) {
+      updates.push('note = ?');
+      values.push(item.note || null);
+    }
+    if (item.enabled !== undefined) {
+      updates.push('enabled = ?');
+      values.push(item.enabled ? 1 : 0);
+    }
+
+    if (updates.length === 0) {
+      return;
+    }
+
+    updates.push('updated_at = ?');
+    values.push(Date.now());
+    values.push(id);
+
+    await db.runAsync(
+      `UPDATE recurring_items SET ${updates.join(', ')} WHERE id = ?`,
+      values
+    );
+  }
+
+  /**
+   * 删除固定收支项目
+   */
+  async deleteRecurringItem(id: number): Promise<void> {
+    const db = this.getDb();
+    await db.runAsync('DELETE FROM recurring_items WHERE id = ?', [id]);
+    // 同时删除关联的 recurring_records（通过 CASCADE 或手动删除）
+    await db.runAsync('DELETE FROM recurring_records WHERE recurring_item_id = ?', [id]);
+  }
+
+  /**
+   * 切换固定收支项目的启用状态
+   */
+  async toggleRecurringItem(id: number, enabled: boolean): Promise<void> {
+    await this.updateRecurringItem(id, { enabled, updatedAt: Date.now() });
+  }
+
+  /**
+   * 根据固定项目创建记录
+   */
+  async createRecordFromRecurringItem(item: RecurringItem, targetDate: number): Promise<number> {
+    const db = this.getDb();
+    
+    // 创建记录
+    const record: Omit<Record, 'id'> = {
+      amount: item.amount,
+      type: item.type,
+      category: item.category,
+      date: targetDate,
+      note: item.note || `${item.name}（固定收支）`,
+    };
+    
+    const recordId = await this.addRecord(record);
+    
+    // 记录到 recurring_records 表
+    const now = Date.now();
+    // 计算目标日期的年月日（用于唯一性检查）
+    const targetDateKey = new Date(targetDate);
+    targetDateKey.setHours(0, 0, 0, 0);
+    const targetDateTimestamp = targetDateKey.getTime();
+    
+    await db.runAsync(
+      `INSERT OR IGNORE INTO recurring_records (recurring_item_id, record_id, target_date, created_at) 
+       VALUES (?, ?, ?, ?)`,
+      [item.id!, recordId, targetDateTimestamp, now]
+    );
+    
+    return recordId;
+  }
+
+  /**
+   * 检查指定日期是否已创建记录
+   */
+  async hasRecurringRecordForDate(itemId: number, targetDate: number): Promise<boolean> {
+    const db = this.getDb();
+    const targetDateKey = new Date(targetDate);
+    targetDateKey.setHours(0, 0, 0, 0);
+    const targetDateTimestamp = targetDateKey.getTime();
+    
+    const result = await db.getFirstAsync<{ count: number }>(
+      'SELECT COUNT(*) as count FROM recurring_records WHERE recurring_item_id = ? AND target_date = ?',
+      [itemId, targetDateTimestamp]
+    );
+    
+    return (result?.count || 0) > 0;
+  }
+
+  /**
+   * 获取指定固定项目已创建的记录
+   */
+  async getRecurringRecordsByItem(itemId: number): Promise<RecurringRecord[]> {
+    const db = this.getDb();
+    const records = await db.getAllAsync<any>(
+      'SELECT * FROM recurring_records WHERE recurring_item_id = ? ORDER BY target_date DESC',
+      [itemId]
+    );
+    return records.map((r) => ({
+      id: r.id,
+      recurringItemId: r.recurring_item_id,
+      recordId: r.record_id,
+      targetDate: r.target_date,
+      createdAt: r.created_at,
+    }));
+  }
+
+  /**
+   * 获取指定日期范围内已创建的记录
+   */
+  async getRecurringRecordsByDateRange(startDate: number, endDate: number): Promise<RecurringRecord[]> {
+    const db = this.getDb();
+    const startDateKey = new Date(startDate);
+    startDateKey.setHours(0, 0, 0, 0);
+    const endDateKey = new Date(endDate);
+    endDateKey.setHours(23, 59, 59, 999);
+    
+    const records = await db.getAllAsync<any>(
+      'SELECT * FROM recurring_records WHERE target_date >= ? AND target_date <= ? ORDER BY target_date DESC',
+      [startDateKey.getTime(), endDateKey.getTime()]
+    );
+    return records.map((r) => ({
+      id: r.id,
+      recurringItemId: r.recurring_item_id,
+      recordId: r.record_id,
+      targetDate: r.target_date,
+      createdAt: r.created_at,
+    }));
+  }
+
+  /**
+   * 删除 recurring_record（当用户删除记录时）
+   */
+  async deleteRecurringRecord(recordId: number): Promise<void> {
+    const db = this.getDb();
+    await db.runAsync('DELETE FROM recurring_records WHERE record_id = ?', [recordId]);
   }
 
   /**
