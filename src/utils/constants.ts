@@ -15,6 +15,7 @@ export const EXPENSE_CATEGORIES_WITH_SUBCATEGORIES = {
   日用品: ['洗漱', '清洁', '纸巾', '其他'],
   零食: [],
   烟酒: [],
+  育儿: ['奶粉', '纸尿裤', '辅食零食', '衣服', '玩具', '疫苗', '医疗', '保险', '其他'],
   其他: [],
 } as const;
 
@@ -52,6 +53,7 @@ export const CATEGORY_ICONS: Record<CategoryName, string> = {
   '水电': 'lightning-bolt',
   '服饰': 'tshirt-crew',
   '日用品': 'basket',
+  '育儿': 'baby-face-outline',
   '零食': 'cookie',
   '烟酒': 'glass-wine',
   // 收入分类图标

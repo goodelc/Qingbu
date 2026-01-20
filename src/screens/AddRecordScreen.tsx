@@ -6,8 +6,6 @@ import {
   Text,
   useTheme,
   SegmentedButtons,
-  RadioButton,
-  Card,
   Appbar,
 } from 'react-native-paper';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -253,28 +251,10 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
               </Text>
               <SegmentedButtons
                 value={type}
-                onValueChange={(value) => {
-                  const newType = value as RecordType;
-                  setType(newType);
-                  const newCategories =
-                    newType === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
-                  if (!(newCategories as readonly string[]).includes(parentCategory)) {
-                    setParentCategory(newCategories[0] as CategoryName);
-                    setSubcategory(undefined);
-                    setShowSubcategories(false);
-                  }
-                }}
+                onValueChange={(value) => setType(value as RecordType)}
                 buttons={[
-                  {
-                    value: 'expense',
-                    label: '支出',
-                    icon: 'arrow-down',
-                  },
-                  {
-                    value: 'income',
-                    label: '收入',
-                    icon: 'arrow-up',
-                  },
+                  { value: 'expense', label: '支出' },
+                  { value: 'income', label: '收入' },
                 ]}
                 style={styles.segmentedButtons}
               />
@@ -301,163 +281,58 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
                   )}
                 </View>
               </View>
-              {!showSubcategories ? (
-                <View style={styles.categoryGrid} key={type}>
-                  {currentCategories.map((cat) => {
-                    const hasSubcategories = getSubcategories(cat, type).length > 0;
-                    const isSelected = parentCategory === cat && !subcategory;
+              <View style={styles.categoryGrid} key={type}>
+                {currentCategories.map((cat) => {
+                  const hasSubcategories = getSubcategories(cat, type).length > 0;
+                  const isSelected = parentCategory === cat && !subcategory;
+                  return (
+                    <Button
+                      key={cat}
+                      mode={isSelected ? 'contained' : 'outlined'}
+                      onPress={() => {
+                        if (hasSubcategories) {
+                          setParentCategory(cat);
+                          setShowSubcategories(true);
+                          setSubcategory(undefined);
+                        } else {
+                          setParentCategory(cat);
+                          setSubcategory(undefined);
+                          setShowSubcategories(false);
+                        }
+                      }}
+                      style={styles.categoryButton}
+                      icon={() => <Icon name={CATEGORY_ICONS[cat] as any} size={20} />}
+                    >
+                      {cat}
+                    </Button>
+                  );
+                })}
+              </View>
+              {showSubcategories && currentSubcategories.length > 0 && (
+                <View style={styles.subcategoryContainer}>
+                  {currentSubcategories.map((sub) => {
+                    const isSelected = subcategory === sub;
                     return (
-                      <Card
-                        key={cat}
-                        style={[
-                          styles.categoryCard,
-                          isSelected && {
-                            backgroundColor: theme.colors.primaryContainer,
-                            borderColor: theme.colors.primary,
-                            borderWidth: 2,
-                          },
-                        ]}
+                      <Button
+                        key={sub}
+                        mode={isSelected ? 'contained-tonal' : 'outlined'}
                         onPress={() => {
-                          if (hasSubcategories) {
-                            setParentCategory(cat);
-                            setShowSubcategories(true);
-                            setSubcategory(undefined);
-                          } else {
-                            setParentCategory(cat);
-                            setSubcategory(undefined);
-                            setShowSubcategories(false);
-                          }
+                          setSubcategory(isSelected ? undefined : sub);
                         }}
+                        style={styles.subcategoryButton}
+                        compact
+                        labelStyle={styles.subcategoryLabel}
                       >
-                        <Card.Content style={styles.categoryCardContent}>
-                          <RadioButton
-                            value={cat}
-                            status={isSelected ? 'checked' : 'unchecked'}
-                            onPress={() => {
-                              if (hasSubcategories) {
-                                setParentCategory(cat);
-                                setShowSubcategories(true);
-                                setSubcategory(undefined);
-                              } else {
-                                setParentCategory(cat);
-                                setSubcategory(undefined);
-                                setShowSubcategories(false);
-                              }
-                            }}
-                          />
-                          <View style={styles.categoryInfo}>
-                            <Icon
-                              name={CATEGORY_ICONS[cat] as any}
-                              size={24}
-                              color={
-                                isSelected
-                                  ? theme.colors.primary
-                                  : theme.colors.onSurface
-                              }
-                            />
-                            <Text
-                              variant="bodyMedium"
-                              style={[
-                                styles.categoryText,
-                                isSelected && {
-                                  color: theme.colors.primary,
-                                  fontWeight: '600',
-                                },
-                              ]}
-                            >
-                              {cat}
-                            </Text>
-                            {isSelected && (
-                              <Icon
-                                name="check-circle"
-                                size={18}
-                                color={theme.colors.primary}
-                              />
-                            )}
-                            {hasSubcategories && !isSelected && (
-                              <Icon
-                                name="chevron-right"
-                                size={20}
-                                color={theme.colors.onSurfaceVariant}
-                              />
-                            )}
-                          </View>
-                        </Card.Content>
-                      </Card>
+                        {sub}
+                      </Button>
                     );
                   })}
                 </View>
-              ) : (
-                <View>
-                  <Button
-                    mode="text"
-                    icon="arrow-left"
-                    onPress={() => {
-                      setShowSubcategories(false);
-                      setSubcategory(undefined);
-                    }}
-                    style={styles.backButton}
-                  >
-                    返回
-                  </Button>
-                  <Text variant="bodyMedium" style={[styles.label, { marginTop: 8 }]}>
-                    选择 {parentCategory} 的子分类
-                  </Text>
-                  <View style={styles.categoryGrid}>
-                    {currentSubcategories.map((sub) => {
-                      const isSelected = subcategory === sub;
-                      return (
-                        <Card
-                          key={sub}
-                          style={[
-                            styles.categoryCard,
-                            isSelected && {
-                              backgroundColor: theme.colors.primaryContainer,
-                              borderColor: theme.colors.primary,
-                              borderWidth: 2,
-                            },
-                          ]}
-                          onPress={() => {
-                            setSubcategory(sub);
-                            setShowSubcategories(false);
-                          }}
-                        >
-                          <Card.Content style={styles.categoryCardContent}>
-                            <RadioButton
-                              value={sub}
-                              status={isSelected ? 'checked' : 'unchecked'}
-                              onPress={() => {
-                                setSubcategory(sub);
-                                setShowSubcategories(false);
-                              }}
-                            />
-                            <View style={styles.categoryInfo}>
-                              <Text
-                                variant="bodyMedium"
-                                style={[
-                                  styles.categoryText,
-                                  isSelected && {
-                                    color: theme.colors.primary,
-                                    fontWeight: '600',
-                                  },
-                                ]}
-                              >
-                                {sub}
-                              </Text>
-                              {isSelected && (
-                                <Icon
-                                  name="check-circle"
-                                  size={18}
-                                  color={theme.colors.primary}
-                                />
-                              )}
-                            </View>
-                          </Card.Content>
-                        </Card>
-                      );
-                    })}
-                  </View>
-                </View>
+              )}
+              {errors.category && (
+                <Text variant="bodySmall" style={[styles.error, { color: theme.colors.error }]}>
+                  {errors.category}
+                </Text>
               )}
             </View>
 
@@ -605,25 +480,11 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 8,
   },
-  categoryCard: {
-    width: '48%',
+  categoryButton: {
+    flex: 1,
+    minWidth: '23%',
+    maxWidth: '24%',
     marginBottom: 8,
-  },
-  categoryCardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-  },
-  categoryInfo: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginLeft: 4,
-  },
-  categoryText: {
-    flex: 1,
   },
   dateContainer: {
     marginVertical: 8,
@@ -650,9 +511,19 @@ const styles = StyleSheet.create({
   submitButton: {
     width: '100%',
   },
-  backButton: {
-    alignSelf: 'flex-start',
+  subcategoryContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+    paddingLeft: 16,
+  },
+  subcategoryButton: {
+    marginRight: 8,
     marginBottom: 8,
+  },
+  subcategoryLabel: {
+    fontSize: 13,
   },
 });
 
