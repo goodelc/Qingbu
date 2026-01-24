@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { Card, Text, useTheme } from 'react-native-paper';
 import { formatAmount } from '../../utils/formatters';
+import { spacing } from '../../theme/spacing';
 import type { MonthlySummary, ComparisonData } from '../../types';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
@@ -38,21 +39,38 @@ export function OverviewCard({ summary, comparison }: OverviewCardProps) {
     );
   };
 
+  const isDark = theme.dark;
+  const balanceColor = summary.balance >= 0 
+    ? theme.colors.primary 
+    : theme.colors.error;
+
   return (
     <Card
       style={[
         styles.card,
         {
           backgroundColor: theme.colors.surface,
-          marginHorizontal: 16,
-          marginVertical: 8,
+          marginHorizontal: spacing.lg,
+          marginVertical: spacing.sm,
+          borderRadius: 16,
+          ...(isDark
+            ? {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 1,
+              }
+            : {
+                elevation: 1,
+              }),
         },
       ]}
     >
       <Card.Content style={styles.content}>
         <View style={styles.row}>
-          <View style={[styles.item, styles.incomeItem]}>
-            <Text variant="bodyMedium" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>
+          <View style={[styles.item, styles.incomeItem, { backgroundColor: theme.colors.primaryContainer }]}>
+            <Text variant="bodyMedium" style={[styles.label, { color: theme.colors.onPrimaryContainer }]}>
               总收入
             </Text>
             <Text
@@ -70,8 +88,8 @@ export function OverviewCard({ summary, comparison }: OverviewCardProps) {
             )}
           </View>
 
-          <View style={[styles.item, styles.expenseItem]}>
-            <Text variant="bodyMedium" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>
+          <View style={[styles.item, styles.expenseItem, { backgroundColor: (theme.colors as any).errorContainer || theme.colors.error + '20' }]}>
+            <Text variant="bodyMedium" style={[styles.label, { color: theme.colors.error }]}>
               总支出
             </Text>
             <Text
@@ -90,8 +108,8 @@ export function OverviewCard({ summary, comparison }: OverviewCardProps) {
           </View>
         </View>
 
-        <View style={[styles.item, styles.balanceItem]}>
-          <Text variant="bodyMedium" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>
+        <View style={[styles.item, styles.balanceItem, { backgroundColor: balanceColor === theme.colors.primary ? theme.colors.primaryContainer : (theme.colors as any).errorContainer || theme.colors.error + '20' }]}>
+          <Text variant="bodyMedium" style={[styles.label, { color: balanceColor }]}>
             结余
           </Text>
           <Text
@@ -99,7 +117,7 @@ export function OverviewCard({ summary, comparison }: OverviewCardProps) {
             style={[
               styles.amount,
               {
-                color: summary.balance >= 0 ? theme.colors.primary : theme.colors.error,
+                color: balanceColor,
               },
             ]}
             numberOfLines={1}
@@ -120,24 +138,27 @@ export function OverviewCard({ summary, comparison }: OverviewCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    elevation: 0,
     borderWidth: 0,
   },
   content: {
-    paddingVertical: 12,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
   },
   row: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 12,
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+    gap: spacing.sm,
   },
   item: {
     alignItems: 'center',
     flex: 1,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    borderRadius: 12,
   },
   incomeItem: {
-    borderRightWidth: StyleSheet.hairlineWidth,
-    borderRightColor: 'rgba(0,0,0,0.08)',
+    // 收入卡片样式
   },
   expenseItem: {
     // 右侧项
@@ -158,7 +179,7 @@ const styles = StyleSheet.create({
   changeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 2,
+    marginTop: spacing.xs,
   },
 });
 

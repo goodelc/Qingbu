@@ -16,7 +16,7 @@ export function AmountBadge({ amount, type, size = 'medium' }: AmountBadgeProps)
   const color = isIncome ? theme.colors.primary : theme.colors.error;
 
   const fontSize = size === 'small' ? 14 : size === 'large' ? 20 : 16;
-  const fontWeight = size === 'large' ? 'bold' : '600';
+  const fontWeight = '600'; // 统一使用 600
 
   return (
     <View style={styles.container}>

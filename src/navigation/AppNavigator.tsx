@@ -3,7 +3,8 @@ import { StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { useTheme, MD3LightTheme, MD3DarkTheme } from 'react-native-paper';
+import { useTheme } from 'react-native-paper';
+import { CustomLightTheme, CustomDarkTheme } from '../theme/customTheme';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '../store/useAppStore';
@@ -35,7 +36,7 @@ function MainTabs() {
 
   return (
     <Tab.Navigator
-      screenOptions={{
+      screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
@@ -44,21 +45,31 @@ function MainTabs() {
           borderTopWidth: StyleSheet.hairlineWidth,
           borderTopColor: theme.colors.outline,
           elevation: 0,
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
         },
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '500',
         },
-      }}
+        tabBarIconStyle: {
+          marginTop: 4,
+        },
+      })}
     >
       <Tab.Screen
         name="Home"
         component={HomeScreen}
         options={{
           tabBarLabel: '首页',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="home" color={color} size={size} />
+          tabBarIcon: ({ color, focused }) => (
+            <Icon name="home" color={color} size={24} />
           ),
+          tabBarLabelStyle: ({ focused }) => ({
+            fontSize: 12,
+            fontWeight: focused ? '600' : '500',
+          }),
         }}
       />
       <Tab.Screen
@@ -66,9 +77,13 @@ function MainTabs() {
         component={StatsScreen}
         options={{
           tabBarLabel: '统计',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="chart-bar" color={color} size={size} />
+          tabBarIcon: ({ color, focused }) => (
+            <Icon name="chart-bar" color={color} size={24} />
           ),
+          tabBarLabelStyle: ({ focused }) => ({
+            fontSize: 12,
+            fontWeight: focused ? '600' : '500',
+          }),
         }}
       />
       <Tab.Screen
@@ -76,9 +91,13 @@ function MainTabs() {
         component={SettingsScreen}
         options={{
           tabBarLabel: '我的',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="account" color={color} size={size} />
+          tabBarIcon: ({ color, focused }) => (
+            <Icon name="account" color={color} size={24} />
           ),
+          tabBarLabelStyle: ({ focused }) => ({
+            fontSize: 12,
+            fontWeight: focused ? '600' : '500',
+          }),
         }}
       />
     </Tab.Navigator>
@@ -87,7 +106,7 @@ function MainTabs() {
 
 export function AppNavigator() {
   const { theme } = useAppStore();
-  const paperTheme = theme === 'dark' ? MD3DarkTheme : MD3LightTheme;
+  const paperTheme = theme === 'dark' ? CustomDarkTheme : CustomLightTheme;
   const insets = useSafeAreaInsets();
 
   return (

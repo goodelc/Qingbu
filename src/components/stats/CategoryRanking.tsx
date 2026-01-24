@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { Card, Text, useTheme, ProgressBar } from 'react-native-paper';
 import { formatAmount } from '../../utils/formatters';
+import { spacing } from '../../theme/spacing';
 import type { CategoryStat } from '../../types';
 import { CATEGORY_ICONS } from '../../utils/constants';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -28,8 +29,20 @@ export function CategoryRanking({
           styles.card,
           {
             backgroundColor: theme.colors.surface,
-            marginHorizontal: 16,
-            marginVertical: 8,
+            marginHorizontal: spacing.lg,
+            marginVertical: spacing.sm,
+            borderRadius: 16,
+            ...(theme.dark
+              ? {
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 4,
+                  elevation: 1,
+                }
+              : {
+                  elevation: 1,
+                }),
           },
         ]}
       >
@@ -75,7 +88,7 @@ export function CategoryRanking({
               <View style={styles.rankHeader}>
                 <View style={styles.rankLeft}>
                   <View style={[styles.rankNumber, { backgroundColor: color }]}>
-                    <Text variant="labelSmall" style={styles.rankNumberText}>
+                    <Text style={styles.rankNumberText}>
                       {index + 1}
                     </Text>
                   </View>
@@ -118,28 +131,27 @@ export function CategoryRanking({
 
 const styles = StyleSheet.create({
   card: {
-    elevation: 0,
     borderWidth: 0,
   },
   title: {
     fontWeight: '500',
-    marginBottom: 12,
+    marginBottom: spacing.md,
     fontSize: 15,
   },
   emptyText: {
     textAlign: 'center',
-    paddingVertical: 12,
+    paddingVertical: spacing.md,
     fontSize: 13,
     opacity: 0.6,
   },
   rankingItem: {
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   rankHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: spacing.xs,
   },
   rankLeft: {
     flexDirection: 'row',
@@ -147,20 +159,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   rankNumber: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
+    marginRight: spacing.sm,
   },
   rankNumberText: {
     color: 'white',
     fontWeight: '600',
-    fontSize: 11,
+    fontSize: 12,
   },
   icon: {
-    marginRight: 10,
+    marginRight: spacing.sm,
   },
   categoryInfo: {
     flex: 1,
@@ -188,7 +200,7 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 4,
-    borderRadius: 2,
+    borderRadius: 4,
   },
 });
 

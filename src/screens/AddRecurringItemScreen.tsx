@@ -270,7 +270,7 @@ export function AddRecurringItemScreen({ navigation, route }: AddRecurringItemSc
               </Text>
               <View style={styles.categoryContainer}>
                 {currentCategories.map((category) => {
-                  const icon = CATEGORY_ICONS[category];
+                  const icon = CATEGORY_ICONS[category] as any;
                   const isSelected = parentCategory === category;
                   return (
                     <Button

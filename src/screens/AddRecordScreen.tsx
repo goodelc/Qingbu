@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert, Animated, TouchableOpacity } from 'react-native';
 import {
   TextInput,
   Button,
@@ -7,6 +7,7 @@ import {
   useTheme,
   SegmentedButtons,
   Appbar,
+  Chip,
 } from 'react-native-paper';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -22,7 +23,8 @@ import {
   type CategoryName,
 } from '../utils/constants';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
-import { formatDate } from '../utils/formatters';
+import { formatDate, formatAmount } from '../utils/formatters';
+import { spacing } from '../theme/spacing';
 import type { Record, RecordType } from '../types';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -58,6 +60,7 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const subcategoryAnimation = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (recordId) {
@@ -87,8 +90,22 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
       setParentCategory(newCategories[0] as CategoryName);
       setSubcategory(undefined);
       setShowSubcategories(false);
+      Animated.timing(subcategoryAnimation, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
     }
   }, [type, parentCategory]);
+
+  // 子分类展开动画
+  useEffect(() => {
+    Animated.timing(subcategoryAnimation, {
+      toValue: showSubcategories ? 1 : 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [showSubcategories]);
 
   const loadRecord = async () => {
     try {
@@ -228,22 +245,66 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
           ]}
         >
           <View style={styles.form}>
-            <TextInput
-              ref={amountInputRef}
-              label="金额"
-              value={amount}
-              onChangeText={setAmount}
-              keyboardType="decimal-pad"
-              mode="outlined"
-              error={!!errors.amount}
-              style={styles.input}
-              left={<TextInput.Icon icon="currency-cny" />}
-            />
-            {errors.amount && (
-              <Text variant="bodySmall" style={[styles.error, { color: theme.colors.error }]}>
-                {errors.amount}
-              </Text>
-            )}
+            <View style={styles.amountContainer}>
+              <TouchableOpacity
+                style={styles.amountInputWrapper}
+                onPress={() => amountInputRef.current?.focus()}
+                activeOpacity={0.7}
+              >
+                {amount && !isNaN(parseFloat(amount)) && parseFloat(amount) > 0 ? (
+                  <Text style={[styles.amountText, { color: theme.colors.onSurface }]}>
+                    ¥{formatAmount(parseFloat(amount))}
+                  </Text>
+                ) : (
+                  <Text style={[styles.amountPlaceholder, { color: theme.colors.onSurfaceVariant }]}>
+                    输入金额
+                  </Text>
+                )}
+                <TextInput
+                  ref={amountInputRef}
+                  value={amount}
+                  onChangeText={setAmount}
+                  keyboardType="decimal-pad"
+                  style={styles.amountInputHidden}
+                  underlineColorAndroid="transparent"
+                />
+              </TouchableOpacity>
+              <View style={styles.typeBadgeContainer}>
+                <Chip
+                  selected={type === 'income'}
+                  onPress={() => setType('income')}
+                  style={[
+                    styles.typeBadge,
+                    type === 'income' && { backgroundColor: theme.colors.primaryContainer },
+                  ]}
+                  textStyle={[
+                    styles.typeBadgeText,
+                    type === 'income' && { color: theme.colors.primary },
+                  ]}
+                >
+                  收入
+                </Chip>
+                <Chip
+                  selected={type === 'expense'}
+                  onPress={() => setType('expense')}
+                  style={[
+                    styles.typeBadge,
+                    type === 'expense' && { backgroundColor: theme.colors.errorContainer || theme.colors.error + '20' },
+                  ]}
+                  textStyle={[
+                    styles.typeBadgeText,
+                    type === 'expense' && { color: theme.colors.error },
+                  ]}
+                >
+                  支出
+                </Chip>
+              </View>
+              {errors.amount && (
+                <Text variant="bodySmall" style={[styles.error, { color: theme.colors.error }]}>
+                  {errors.amount}
+                </Text>
+              )}
+            </View>
 
             <View style={styles.typeContainer}>
               <Text variant="bodyLarge" style={styles.label}>
@@ -285,10 +346,16 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
                 {currentCategories.map((cat) => {
                   const hasSubcategories = getSubcategories(cat, type).length > 0;
                   const isSelected = parentCategory === cat && !subcategory;
+                  const iconName = CATEGORY_ICONS[cat] as any;
                   return (
-                    <Button
+                    <TouchableOpacity
                       key={cat}
-                      mode={isSelected ? 'contained' : 'outlined'}
+                      style={[
+                        styles.categoryCircleButton,
+                        isSelected && {
+                          backgroundColor: theme.colors.primaryContainer,
+                        },
+                      ]}
                       onPress={() => {
                         if (hasSubcategories) {
                           setParentCategory(cat);
@@ -300,34 +367,78 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
                           setShowSubcategories(false);
                         }
                       }}
-                      style={styles.categoryButton}
-                      icon={() => <Icon name={CATEGORY_ICONS[cat] as any} size={20} />}
+                      activeOpacity={0.7}
                     >
-                      {cat}
-                    </Button>
+                      <Icon
+                        name={iconName}
+                        size={24}
+                        color={isSelected ? theme.colors.primary : theme.colors.onSurface}
+                      />
+                      <Text
+                        style={[
+                          styles.categoryCircleLabel,
+                          {
+                            color: isSelected ? theme.colors.primary : theme.colors.onSurface,
+                            fontSize: 11,
+                          },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {cat}
+                      </Text>
+                    </TouchableOpacity>
                   );
                 })}
               </View>
-              {showSubcategories && currentSubcategories.length > 0 && (
-                <View style={styles.subcategoryContainer}>
+              {currentSubcategories.length > 0 && showSubcategories && (
+                <Animated.View
+                  style={[
+                    styles.subcategoryContainer,
+                    {
+                      opacity: subcategoryAnimation,
+                      transform: [
+                        {
+                          translateY: subcategoryAnimation.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [-10, 0],
+                          }),
+                        },
+                      ],
+                    },
+                  ]}
+                >
                   {currentSubcategories.map((sub) => {
                     const isSelected = subcategory === sub;
                     return (
-                      <Button
+                      <TouchableOpacity
                         key={sub}
-                        mode={isSelected ? 'contained-tonal' : 'outlined'}
+                        style={[
+                          styles.subcategoryCapsule,
+                          isSelected && {
+                            backgroundColor: theme.colors.primaryContainer,
+                          },
+                        ]}
                         onPress={() => {
                           setSubcategory(isSelected ? undefined : sub);
                         }}
-                        style={styles.subcategoryButton}
-                        compact
-                        labelStyle={styles.subcategoryLabel}
+                        activeOpacity={0.7}
                       >
-                        {sub}
-                      </Button>
+                        <Text
+                          style={[
+                            styles.subcategoryCapsuleText,
+                            {
+                              color: isSelected
+                                ? theme.colors.primary
+                                : theme.colors.onSurface,
+                            },
+                          ]}
+                        >
+                          {sub}
+                        </Text>
+                      </TouchableOpacity>
                     );
                   })}
-                </View>
+                </Animated.View>
               )}
               {errors.category && (
                 <Text variant="bodySmall" style={[styles.error, { color: theme.colors.error }]}>
@@ -430,12 +541,51 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: spacing.lg,
     paddingBottom: 50,
-    paddingTop: 12,
+    paddingTop: spacing.md,
   },
   form: {
-    gap: 16,
+    gap: spacing.lg,
+  },
+  amountContainer: {
+    marginBottom: spacing.md,
+  },
+  amountInputWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 60,
+    paddingVertical: spacing.md,
+  },
+  amountInputHidden: {
+    position: 'absolute',
+    opacity: 0,
+    width: 1,
+    height: 1,
+  },
+  amountText: {
+    fontSize: 32,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  amountPlaceholder: {
+    fontSize: 32,
+    fontWeight: '600',
+    textAlign: 'center',
+    opacity: 0.3,
+  },
+  typeBadgeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  typeBadge: {
+    height: 32,
+  },
+  typeBadgeText: {
+    fontSize: 13,
+    fontWeight: '500',
   },
   title: {
     marginBottom: 8,
@@ -445,20 +595,20 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   label: {
-    marginBottom: 8,
+    marginBottom: spacing.sm,
     fontWeight: '600',
   },
   typeContainer: {
-    marginVertical: 8,
+    marginVertical: spacing.sm,
   },
   segmentedButtons: {
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   categoryContainer: {
-    marginVertical: 8,
+    marginVertical: spacing.sm,
   },
   categoryHeader: {
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   categoryLabelRow: {
     flexDirection: 'row',
@@ -477,25 +627,36 @@ const styles = StyleSheet.create({
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 8,
+    gap: spacing.md,
+    marginTop: spacing.sm,
+    justifyContent: 'space-between',
   },
-  categoryButton: {
-    flex: 1,
-    minWidth: '23%',
-    maxWidth: '24%',
-    marginBottom: 8,
+  categoryCircleButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.12)',
+    marginBottom: spacing.sm,
+  },
+  categoryCircleLabel: {
+    marginTop: spacing.xs,
+    fontSize: 11,
+    textAlign: 'center',
   },
   dateContainer: {
-    marginVertical: 8,
+    marginVertical: spacing.sm,
   },
   dateButton: {
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   quickDateContainer: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 8,
+    gap: spacing.sm,
+    marginTop: spacing.sm,
   },
   quickDateButton: {
     minWidth: 60,
@@ -514,16 +675,22 @@ const styles = StyleSheet.create({
   subcategoryContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 12,
-    paddingLeft: 16,
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    paddingLeft: spacing.lg,
+    overflow: 'hidden',
   },
-  subcategoryButton: {
-    marginRight: 8,
-    marginBottom: 8,
+  subcategoryCapsule: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.12)',
+    marginBottom: spacing.sm,
   },
-  subcategoryLabel: {
+  subcategoryCapsuleText: {
     fontSize: 13,
+    fontWeight: '500',
   },
 });
 

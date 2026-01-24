@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import { View, StyleSheet, Dimensions, Platform } from 'react-native';
 import { Card, Text, useTheme } from 'react-native-paper';
 import { formatAmount } from '../../utils/formatters';
+import { spacing } from '../../theme/spacing';
 import type { CategoryStat } from '../../types';
 import { CATEGORY_ICONS } from '../../utils/constants';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -13,10 +14,16 @@ interface CategoryPieChartProps {
   maxDisplayItems?: number;
 }
 
-// 简单的饼图颜色方案
-const CHART_COLORS = [
+// 浅色模式颜色方案（高饱和度）
+const LIGHT_CHART_COLORS = [
   '#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#F44336',
   '#00BCD4', '#FFC107', '#795548', '#607D8B', '#E91E63',
+];
+
+// 深色模式颜色方案（高饱和度但低亮度）
+const DARK_CHART_COLORS = [
+  '#66BB6A', '#42A5F5', '#FFA726', '#AB47BC', '#EF5350',
+  '#26C6DA', '#FFCA28', '#8D6E63', '#78909C', '#EC407A',
 ];
 
 export function CategoryPieChart({
@@ -26,6 +33,7 @@ export function CategoryPieChart({
   maxDisplayItems = 6,
 }: CategoryPieChartProps) {
   const theme = useTheme();
+  const chartColors = theme.dark ? DARK_CHART_COLORS : LIGHT_CHART_COLORS;
 
   const { displayCategories, others } = useMemo(() => {
     if (categories.length <= maxDisplayItems) {
@@ -58,8 +66,20 @@ export function CategoryPieChart({
           styles.card,
           {
             backgroundColor: theme.colors.surface,
-            marginHorizontal: 16,
-            marginVertical: 8,
+            marginHorizontal: spacing.lg,
+            marginVertical: spacing.sm,
+            borderRadius: 16,
+            ...(theme.dark
+              ? {
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 4,
+                  elevation: 1,
+                }
+              : {
+                  elevation: 1,
+                }),
           },
         ]}
       >
@@ -97,11 +117,21 @@ export function CategoryPieChart({
           {title}
         </Text>
 
+        {/* 中心总金额标签 */}
+        <View style={styles.centerLabelContainer}>
+          <Text variant="bodySmall" style={[styles.centerLabelText, { color: theme.colors.onSurfaceVariant }]}>
+            总金额
+          </Text>
+          <Text variant="headlineMedium" style={[styles.centerLabelAmount, { color }]}>
+            {formatAmount(totalAmount)}
+          </Text>
+        </View>
+
         {/* 简化的饼图可视化 - 使用进度条表示 */}
         <View style={styles.chartContainer}>
           {displayCategories.map((item, index) => {
             const iconName = CATEGORY_ICONS[item.category as keyof typeof CATEGORY_ICONS] || 'dots-horizontal';
-            const chartColor = CHART_COLORS[index % CHART_COLORS.length];
+            const chartColor = chartColors[index % chartColors.length];
             
             return (
               <View key={item.category} style={styles.chartItem}>
@@ -180,15 +210,6 @@ export function CategoryPieChart({
             </View>
           )}
         </View>
-
-        <View style={styles.totalContainer}>
-          <Text variant="bodyMedium" style={[styles.totalLabel, { color: theme.colors.onSurfaceVariant }]}>
-            合计
-          </Text>
-          <Text variant="titleLarge" style={[styles.totalAmount, { color }]}>
-            {formatAmount(totalAmount)}
-          </Text>
-        </View>
       </Card.Content>
     </Card>
   );
@@ -201,17 +222,34 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: '500',
-    marginBottom: 12,
+    marginBottom: spacing.md,
     fontSize: 15,
   },
   emptyText: {
     textAlign: 'center',
-    paddingVertical: 12,
+    paddingVertical: spacing.md,
     fontSize: 13,
     opacity: 0.6,
   },
+  centerLabelContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.lg,
+    marginBottom: spacing.md,
+    backgroundColor: 'rgba(0,0,0,0.02)',
+    borderRadius: 12,
+  },
+  centerLabelText: {
+    fontSize: 12,
+    opacity: 0.7,
+    marginBottom: spacing.xs,
+  },
+  centerLabelAmount: {
+    fontWeight: '600',
+    fontSize: 24,
+  },
   chartContainer: {
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   chartItem: {
     marginBottom: 10,
@@ -260,23 +298,7 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: '100%',
-    borderRadius: 2,
-  },
-  totalContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(0,0,0,0.08)',
-  },
-  totalLabel: {
-    fontSize: 13,
-    opacity: 0.7,
-  },
-  totalAmount: {
-    fontWeight: '600',
-    fontSize: 18,
+    borderRadius: 4,
   },
 });
 

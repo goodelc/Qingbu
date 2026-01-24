@@ -8,6 +8,7 @@ import { RecordItem } from '../components/RecordItem';
 import { MonthlySummaryCard } from '../components/MonthlySummaryCard';
 import { MonthNavigator } from '../components/MonthNavigator';
 import { formatDateGroup } from '../utils/formatters';
+import { spacing } from '../theme/spacing';
 import type { Record } from '../types';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { CompositeNavigationProp } from '@react-navigation/native';
@@ -193,7 +194,15 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   const renderItem = ({ item }: { item: { type: 'header' | 'item'; data: any } }) => {
     if (item.type === 'header') {
       return (
-        <View style={[styles.dateHeader, { backgroundColor: theme.colors.surface }]}>
+        <View
+          style={[
+            styles.dateHeader,
+            {
+              backgroundColor: theme.colors.surface,
+              borderTopColor: theme.colors.outline,
+            },
+          ]}
+        >
           <Text variant="titleSmall" style={[styles.dateHeaderText, { color: theme.colors.primary }]}>
             {item.data.date}
           </Text>
@@ -215,13 +224,13 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
         variant="bodyLarge"
         style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}
       >
-        暂无记录
+        还没有记录
       </Text>
       <Text
         variant="bodyMedium"
         style={[styles.emptyHint, { color: theme.colors.onSurfaceVariant }]}
       >
-        点击右下角按钮添加第一条记录
+        点击 + 添加一笔吧
       </Text>
     </View>
   );
@@ -286,7 +295,13 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
       >
         <FAB
           icon="plus"
-          style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+          style={[
+            styles.fab,
+            {
+              backgroundColor: theme.colors.primary,
+              elevation: 4,
+            },
+          ]}
           onPress={handleAddPress}
           color={theme.colors.onPrimary}
         />
@@ -327,17 +342,18 @@ const styles = StyleSheet.create({
   },
   fabContainer: {
     position: 'absolute',
-    right: 16,
-    bottom: 16,
+    right: spacing.lg,
+    bottom: spacing.lg,
   },
   fab: {
     margin: 0,
   },
   dateHeader: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    marginTop: 6,
-    marginBottom: 2,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   dateHeaderText: {
     fontWeight: '500',

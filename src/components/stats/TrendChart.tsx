@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import { View, StyleSheet, Dimensions, Platform } from 'react-native';
 import { Card, Text, useTheme, SegmentedButtons } from 'react-native-paper';
 import { formatAmount, formatDate } from '../../utils/formatters';
+import { spacing } from '../../theme/spacing';
 import type { DailyStat } from '../../types';
 
 interface TrendChartProps {
@@ -29,8 +30,20 @@ export function TrendChart({ dailyStats }: TrendChartProps) {
           styles.card,
           {
             backgroundColor: theme.colors.surface,
-            marginHorizontal: 16,
-            marginVertical: 8,
+            marginHorizontal: spacing.lg,
+            marginVertical: spacing.sm,
+            borderRadius: 16,
+            ...(theme.dark
+              ? {
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 4,
+                  elevation: 1,
+                }
+              : {
+                  elevation: 1,
+                }),
           },
         ]}
       >
@@ -246,7 +259,7 @@ const styles = StyleSheet.create({
     marginRight: 3, // 增加容器之间的间距
   },
   bar: {
-    borderRadius: 2,
+    borderRadius: 4,
     minHeight: 1,
   },
   xAxis: {

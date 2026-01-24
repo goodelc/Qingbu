@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { Card, Text, useTheme } from 'react-native-paper';
 import { formatAmount } from '../utils/formatters';
+import { spacing } from '../theme/spacing';
 import type { MonthlySummary } from '../types';
 
 interface MonthlySummaryCardProps {
@@ -13,14 +14,28 @@ interface MonthlySummaryCardProps {
 export function MonthlySummaryCard({ summary, year, month }: MonthlySummaryCardProps) {
   const theme = useTheme();
 
+  const isDark = theme.dark;
+  
   return (
     <Card
       style={[
         styles.card,
         {
           backgroundColor: theme.colors.primaryContainer,
-          marginHorizontal: 16,
-          marginVertical: 8,
+          marginHorizontal: spacing.lg,
+          marginVertical: spacing.md,
+          borderRadius: 16,
+          ...(isDark
+            ? {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 1,
+              }
+            : {
+                elevation: 1,
+              }),
         },
       ]}
     >
@@ -99,7 +114,6 @@ export function MonthlySummaryCard({ summary, year, month }: MonthlySummaryCardP
 
 const styles = StyleSheet.create({
   card: {
-    elevation: 0,
     borderWidth: 0,
   },
   title: {
@@ -110,7 +124,7 @@ const styles = StyleSheet.create({
   },
   summaryRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
   summaryItem: {

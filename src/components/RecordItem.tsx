@@ -1,9 +1,11 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Card, Text, IconButton, useTheme } from 'react-native-paper';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { formatDate, formatDateTime } from '../utils/formatters';
-import { parseCategory } from '../utils/constants';
+import { parseCategory, CATEGORY_ICONS } from '../utils/constants';
 import { AmountBadge } from './AmountBadge';
+import { spacing } from '../theme/spacing';
 import type { Record } from '../types';
 
 interface RecordItemProps {
@@ -33,10 +35,17 @@ export function RecordItem({
 
   // 解析分类显示
   const { parent, subcategory } = parseCategory(record.category);
+  const iconName = CATEGORY_ICONS[parent as keyof typeof CATEGORY_ICONS] || 'dots-horizontal';
 
   return (
     <Card
-      style={[styles.card, { backgroundColor: theme.colors.surface }]}
+      style={[
+        styles.card,
+        {
+          backgroundColor: theme.colors.surface,
+          borderRadius: 12,
+        },
+      ]}
       onPress={handlePress}
       mode="outlined"
       contentStyle={styles.cardContent}
@@ -47,6 +56,12 @@ export function RecordItem({
             <View style={styles.header}>
               <View style={styles.categoryContainer}>
                 <View style={styles.categoryRow}>
+                  <Icon
+                    name={iconName as any}
+                    size={20}
+                    color={theme.colors.primary}
+                    style={styles.categoryIcon}
+                  />
                   <Text variant="titleMedium" style={styles.category}>
                     {parent}
                   </Text>
@@ -96,13 +111,12 @@ export function RecordItem({
 
 const styles = StyleSheet.create({
   card: {
-    marginHorizontal: 16,
-    marginVertical: 3,
+    marginHorizontal: spacing.lg,
+    marginVertical: spacing.md,
     elevation: 0,
   },
   cardContent: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    padding: spacing.lg,
   },
   content: {
     flexDirection: 'row',
@@ -126,6 +140,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
+  },
+  categoryIcon: {
+    marginRight: spacing.sm,
   },
   category: {
     fontWeight: '500',
