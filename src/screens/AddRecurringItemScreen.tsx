@@ -252,7 +252,6 @@ export function AddRecurringItemScreen({ navigation, route }: AddRecurringItemSc
                 keyboardType="decimal-pad"
                 error={!!errors.amount}
                 style={styles.input}
-                left={<TextInput.Icon icon="currency-cny" />}
               />
               {errors.amount && (
                 <Text variant="bodySmall" style={{ color: theme.colors.error, marginTop: 4 }}>

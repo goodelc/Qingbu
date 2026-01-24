@@ -253,7 +253,7 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
               >
                 {amount && !isNaN(parseFloat(amount)) && parseFloat(amount) > 0 ? (
                   <Text style={[styles.amountText, { color: theme.colors.onSurface }]}>
-                    ¥{formatAmount(parseFloat(amount))}
+                    {formatAmount(parseFloat(amount))}
                   </Text>
                 ) : (
                   <Text style={[styles.amountPlaceholder, { color: theme.colors.onSurfaceVariant }]}>
