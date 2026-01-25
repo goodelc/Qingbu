@@ -17,3 +17,5 @@ export const spacing = {
   componentGap: 12, // 组件间隙
   iconTextGap: 8, // 图标与文字间距
 } as const;
+
+export default spacing;

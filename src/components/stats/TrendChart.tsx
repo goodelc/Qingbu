@@ -1,27 +1,38 @@
 import React, { useMemo } from 'react';
-import { View, StyleSheet, Dimensions, Platform } from 'react-native';
-import { Card, Text, useTheme, SegmentedButtons } from 'react-native-paper';
+import { View, StyleSheet, Dimensions, Platform, TouchableOpacity } from 'react-native';
+import { Card, Text, useTheme } from 'react-native-paper';
 import { formatAmount, formatDate } from '../../utils/formatters';
-import { spacing } from '../../theme/spacing';
+import spacing from '../../theme/spacing';
 import type { DailyStat } from '../../types';
 
 interface TrendChartProps {
   dailyStats: DailyStat[];
 }
 
-type ChartType = 'income' | 'expense' | 'all';
+type ChartType = 'income' | 'expense';
+
+// 核心颜色（参考项目）
+const PRIMARY_COLOR = '#4DB6AC';
+const ERROR_COLOR = '#EF5350';
 
 export function TrendChart({ dailyStats }: TrendChartProps) {
   const theme = useTheme();
-  const [chartType, setChartType] = React.useState<ChartType>('all');
+  const [chartType, setChartType] = React.useState<ChartType>('expense');
   const screenWidth = Dimensions.get('window').width;
 
   const maxValue = useMemo(() => {
     if (dailyStats.length === 0) return 1;
-    return Math.max(
-      ...dailyStats.map((stat) => Math.max(stat.income, stat.expense))
-    );
-  }, [dailyStats]);
+    if (chartType === 'income') return Math.max(...dailyStats.map(s => s.income), 1);
+    return Math.max(...dailyStats.map(s => s.expense), 1);
+  }, [dailyStats, chartType]);
+
+  // 显示最近的数据（参考项目显示最近10条）
+  const maxBars = 10;
+  const sampledStats = dailyStats.length > maxBars 
+    ? dailyStats.slice(-maxBars) 
+    : dailyStats;
+  
+  const barWidth = (Dimensions.get('window').width - 48 - 48) / sampledStats.length - 4; // 减去 padding 和间距
 
   if (dailyStats.length === 0) {
     return (
@@ -30,53 +41,29 @@ export function TrendChart({ dailyStats }: TrendChartProps) {
           styles.card,
           {
             backgroundColor: theme.colors.surface,
-            marginHorizontal: spacing.lg,
-            marginVertical: spacing.sm,
-            borderRadius: 16,
-            ...(theme.dark
-              ? {
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                  elevation: 1,
-                }
-              : {
-                  elevation: 1,
-                }),
+            marginHorizontal: 24,
+            marginVertical: 12,
+            borderRadius: 32,
+            elevation: 0,
+            borderWidth: 1,
+            borderColor: theme.colors.outline + '20' || '#F1F3F4',
           },
         ]}
       >
-        <Card.Content>
-          <Text variant="titleMedium" style={[styles.title, { color: theme.colors.onSurface }]}>
+        <Card.Content style={{ padding: 16 }}>
+          <Text variant="titleMedium" style={[styles.title, { color: theme.colors.onSurface, fontWeight: '800' }]}>
             收支趋势
           </Text>
           <Text
             variant="bodyMedium"
-            style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}
+            style={[styles.emptyText, { color: theme.colors.onSurfaceVariant, textAlign: 'center', marginTop: 20 }]}
           >
-            暂无数据
+            暂无趋势数据
           </Text>
         </Card.Content>
       </Card>
     );
   }
-
-  const chartHeight = 200;
-  const chartWidth = screenWidth - 64; // 减去 padding
-  const gap = 3; // 增加柱子之间的间距
-  const maxBars = 30; // 最多显示30个柱子，超过则采样
-  const shouldSample = dailyStats.length > maxBars;
-  const sampledStats = shouldSample 
-    ? dailyStats.filter((_, index) => index % Math.ceil(dailyStats.length / maxBars) === 0 || index === dailyStats.length - 1)
-    : dailyStats;
-  
-  // 调整柱子宽度，让柱子更细
-  // 全部模式：每个柱子对（收入+支出）的总宽度更小
-  // 单独模式：单个柱子宽度更小
-  const barWidth = chartType === 'all' 
-    ? Math.max(2, (chartWidth - (sampledStats.length - 1) * gap - sampledStats.length * gap) / (sampledStats.length * 2))
-    : Math.max(3, (chartWidth - (sampledStats.length - 1) * gap) / sampledStats.length);
 
   return (
     <Card
@@ -84,125 +71,84 @@ export function TrendChart({ dailyStats }: TrendChartProps) {
         styles.card,
         {
           backgroundColor: theme.colors.surface,
-          marginHorizontal: 16,
-          marginVertical: 8,
+          marginHorizontal: 24,
+          marginVertical: 12,
+          borderRadius: 32,
+          elevation: 0,
+          borderWidth: 1,
+          borderColor: theme.colors.outline + '20' || '#F1F3F4',
         },
       ]}
     >
-      <Card.Content>
-        <Text variant="titleMedium" style={[styles.title, { color: theme.colors.onSurface }]}>
-          收支趋势
-        </Text>
-
-        <SegmentedButtons
-          value={chartType}
-          onValueChange={(value) => setChartType(value as ChartType)}
-          buttons={[
-            { value: 'income', label: '收入' },
-            { value: 'expense', label: '支出' },
-            { value: 'all', label: '全部' },
-          ]}
-          style={styles.segmentedButtons}
-        />
-
-        <View style={styles.chartContainer}>
-          {/* Y轴标签 */}
-          <View style={styles.yAxisContainer}>
-            <Text variant="bodySmall" style={[styles.yAxisLabel, { color: theme.colors.onSurfaceVariant }]}>
-              {formatAmount(maxValue)}
-            </Text>
-            <Text variant="bodySmall" style={[styles.yAxisLabel, { color: theme.colors.onSurfaceVariant }]}>
-              {formatAmount(maxValue / 2)}
-            </Text>
-            <Text variant="bodySmall" style={[styles.yAxisLabel, { color: theme.colors.onSurfaceVariant }]}>
-              0
-            </Text>
-          </View>
-
-          <View style={styles.chartWrapper}>
-            <View style={[styles.chart, { height: chartHeight, width: chartWidth }]}>
-              {sampledStats.map((stat, index) => {
-                const incomeHeight = maxValue > 0 ? (stat.income / maxValue) * chartHeight : 0;
-                const expenseHeight = maxValue > 0 ? (stat.expense / maxValue) * chartHeight : 0;
-                
-                return (
-                  <View key={`${stat.date}-${index}`} style={styles.barContainer}>
-                    {(chartType === 'income' || chartType === 'all') && (
-                      <View
-                        style={[
-                          styles.bar,
-                          {
-                            height: Math.max(incomeHeight, 1),
-                            backgroundColor: theme.colors.primary,
-                            width: barWidth,
-                            marginRight: chartType === 'all' ? gap : 0,
-                          },
-                        ]}
-                      />
-                    )}
-                    {(chartType === 'expense' || chartType === 'all') && (
-                      <View
-                        style={[
-                          styles.bar,
-                          {
-                            height: Math.max(expenseHeight, 1),
-                            backgroundColor: theme.colors.error,
-                            width: barWidth,
-                          },
-                        ]}
-                      />
-                    )}
-                  </View>
-                );
-              })}
-            </View>
-
-            {/* X 轴标签 */}
-            <View style={styles.xAxis}>
-              {sampledStats.map((stat, index) => {
-                const step = Math.max(1, Math.floor(sampledStats.length / 5));
-                const shouldShow = index % step === 0 || index === sampledStats.length - 1;
-                const itemWidth = chartType === 'all' ? barWidth * 2 + gap : barWidth + gap;
-                
-                if (!shouldShow) {
-                  return <View key={`${stat.date}-spacer-${index}`} style={{ width: itemWidth }} />;
+      <Card.Content style={{ padding: 16 }}>
+        <View style={styles.headerRow}>
+          <Text variant="titleMedium" style={[styles.title, { color: theme.colors.onSurface, fontWeight: '800' }]}>
+            收支趋势
+          </Text>
+          <View style={[styles.typeToggle, { backgroundColor: theme.colors.surfaceVariant || '#F1F3F4' }]}>
+            <TouchableOpacity 
+              onPress={() => setChartType('expense')} 
+              style={[
+                styles.toggleBtn, 
+                chartType === 'expense' && { 
+                  backgroundColor: '#FFFFFF',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 2,
+                  elevation: 1,
                 }
-                
-                return (
-                  <Text
-                    key={`${stat.date}-label-${index}`}
-                    variant="bodySmall"
-                    style={[
-                      styles.xAxisLabel,
-                      { color: theme.colors.onSurfaceVariant, width: itemWidth },
-                    ]}
-                  >
-                    {formatDate(stat.date).split('-').slice(1).join('/')}
-                  </Text>
-                );
-              })}
-            </View>
+              ]}
+            >
+              <Text style={[styles.toggleText, { color: chartType === 'expense' ? ERROR_COLOR : theme.colors.onSurfaceVariant }]}>支出</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => setChartType('income')} 
+              style={[
+                styles.toggleBtn, 
+                chartType === 'income' && { 
+                  backgroundColor: '#FFFFFF',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 2,
+                  elevation: 1,
+                }
+              ]}
+            >
+              <Text style={[styles.toggleText, { color: chartType === 'income' ? PRIMARY_COLOR : theme.colors.onSurfaceVariant }]}>收入</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* 图例 */}
-        <View style={styles.legend}>
-          {(chartType === 'income' || chartType === 'all') && (
-            <View style={styles.legendItem}>
-              <View style={[styles.legendColor, { backgroundColor: theme.colors.primary }]} />
-              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                收入
-              </Text>
-            </View>
-          )}
-          {(chartType === 'expense' || chartType === 'all') && (
-            <View style={styles.legendItem}>
-              <View style={[styles.legendColor, { backgroundColor: theme.colors.error }]} />
-              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                支出
-              </Text>
-            </View>
-          )}
+        <View style={styles.chartArea}>
+          <View style={styles.barsContainer}>
+            {sampledStats.map((stat, index) => {
+              const val = chartType === 'income' ? stat.income : stat.expense;
+              const h = maxValue > 0 ? (val / maxValue) * 140 : 0;
+              const barColor = chartType === 'income' ? PRIMARY_COLOR : ERROR_COLOR;
+              
+              return (
+                <View key={index} style={styles.barWrapper}>
+                  <View 
+                    style={[
+                      styles.barItem, 
+                      { 
+                        height: Math.max(h, 4), 
+                        backgroundColor: barColor, 
+                        width: Math.max(barWidth, 6),
+                        borderTopLeftRadius: 4,
+                        borderTopRightRadius: 4,
+                      }
+                    ]} 
+                  />
+                  <Text style={[styles.xAxisText, { color: theme.colors.onSurfaceVariant || '#86868B' }]}>
+                    {new Date(stat.date).getDate()}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
         </View>
       </Card.Content>
     </Card>
@@ -211,87 +157,57 @@ export function TrendChart({ dailyStats }: TrendChartProps) {
 
 const styles = StyleSheet.create({
   card: {
-    elevation: 2,
+    overflow: 'hidden',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   title: {
-    fontWeight: '600',
-    marginBottom: 16,
+    fontSize: 18,
+  },
+  typeToggle: {
+    flexDirection: 'row',
+    padding: 3,
+    borderRadius: 16,
+  },
+  toggleBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  toggleText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  chartArea: {
+    height: 256, // 参考项目的 h-64 (256px)
+    justifyContent: 'flex-end',
+  },
+  barsContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    height: 240,
+    paddingHorizontal: 0,
+  },
+  barWrapper: {
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    flex: 1,
+    gap: 8,
+  },
+  barItem: {
+    minHeight: 4,
+  },
+  xAxisText: {
+    fontSize: 10,
+    fontWeight: '500',
+    opacity: 0.6,
   },
   emptyText: {
-    textAlign: 'center',
-    paddingVertical: 16,
-    opacity: 0.7,
-  },
-  segmentedButtons: {
-    marginBottom: 16,
-  },
-  chartContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  yAxisContainer: {
-    justifyContent: 'space-between',
-    paddingRight: 8,
-    paddingBottom: 20,
-    height: 200,
-  },
-  yAxisLabel: {
-    fontSize: 10,
-    opacity: 0.7,
-  },
-  chartWrapper: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  chart: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'flex-start',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
-    paddingBottom: 8,
-    paddingLeft: 4,
-  },
-  barContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    marginRight: 3, // 增加容器之间的间距
-  },
-  bar: {
-    borderRadius: 4,
-    minHeight: 1,
-  },
-  xAxis: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    width: '100%',
-    marginTop: 8,
-    paddingLeft: 4,
-  },
-  xAxisLabel: {
-    fontSize: 10,
-    opacity: 0.7,
-    textAlign: 'center',
-    minWidth: 40,
-  },
-  xAxisSpacer: {
-    minWidth: 40,
-  },
-  legend: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 16,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  legendColor: {
-    width: 12,
-    height: 12,
-    borderRadius: 2,
+    opacity: 0.5,
   },
 });
-

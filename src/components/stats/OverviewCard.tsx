@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import { Card, Text, useTheme } from 'react-native-paper';
 import { formatAmount } from '../../utils/formatters';
-import { spacing } from '../../theme/spacing';
+import spacing from '../../theme/spacing';
 import type { MonthlySummary, ComparisonData } from '../../types';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 

@@ -1,18 +1,19 @@
 import { MD3LightTheme, MD3DarkTheme } from 'react-native-paper';
 
-// 新的颜色系统 - Modern Financial Palette
+// 新的颜色系统 - Modern Financial Palette (Optimized by AI)
 const lightColors = {
-  primary: '#4DB6AC', // 柔和青绿
+  primary: '#4DB6AC',
   onPrimary: '#FFFFFF',
-  primaryContainer: '#E0F2F1', // 浅青灰，用于汇总卡背景
+  primaryContainer: '#E0F2F1',
   onPrimaryContainer: '#004D40',
-  error: '#EF5350', // 柔和珊瑚红
+  error: '#EF5350',
   onError: '#FFFFFF',
-  background: '#FAFAFA',
+  background: '#FBFBFC', // 更加柔和的背景
   surface: '#FFFFFF',
-  onSurface: '#1D1B20',
-  onSurfaceVariant: '#49454F',
-  outline: '#79747E',
+  surfaceVariant: '#F1F3F4', // 增加浅灰色的辅助表面
+  onSurface: '#1D1D1F', // 更深的文字色
+  onSurfaceVariant: '#86868B', // 柔和的辅助文字色
+  outline: '#E0E0E0', // 更细微的边框色
 };
 
 const darkColors = {
@@ -24,9 +25,10 @@ const darkColors = {
   onError: '#690005',
   background: '#121212',
   surface: '#1E1E1E',
+  surfaceVariant: '#2C2C2E',
   onSurface: '#E6E1E5',
   onSurfaceVariant: '#CAC4D0',
-  outline: '#938F99',
+  outline: '#3A3A3C',
 };
 
 // 创建浅色主题

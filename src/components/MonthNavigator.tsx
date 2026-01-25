@@ -85,45 +85,62 @@ export function MonthNavigator({
           },
         ]}
       >
-        <IconButton
-          icon="chevron-left"
-          size={24}
-          onPress={onPreviousMonth}
-          iconColor={theme.colors.onSurface}
-        />
-        <TouchableOpacity
-          style={styles.monthContainer}
-          onPress={handleMonthPress}
-          activeOpacity={0.7}
-        >
-          <Text
-            variant="titleMedium"
-            style={[styles.monthText, { color: theme.colors.onSurface }]}
-          >
-            {year}年 {monthNames[month - 1]}
-          </Text>
-        </TouchableOpacity>
-        <IconButton
-          icon="chevron-right"
-          size={24}
-          onPress={onNextMonth}
-          iconColor={theme.colors.onSurface}
-        />
-        {!isCurrentMonth() && onTodayPress && (
+        <View style={styles.leftSection}>
           <IconButton
-            icon="calendar-today"
-            size={20}
-            onPress={onTodayPress}
-            iconColor={theme.colors.primary}
-            style={styles.todayButton}
+            icon="chevron-left"
+            size={22}
+            onPress={onPreviousMonth}
+            iconColor={theme.colors.onSurface}
+            style={styles.navButton}
           />
-        )}
+          <TouchableOpacity
+            style={styles.monthContainer}
+            onPress={handleMonthPress}
+            activeOpacity={0.7}
+          >
+            <Text
+              variant="titleMedium"
+              style={[styles.monthText, { color: theme.colors.onSurface }]}
+            >
+              {year}年 {monthNames[month - 1]}
+            </Text>
+          </TouchableOpacity>
+          <IconButton
+            icon="chevron-right"
+            size={22}
+            onPress={onNextMonth}
+            iconColor={theme.colors.onSurface}
+            style={styles.navButton}
+          />
+        </View>
+        <View style={styles.rightSection}>
+          {!isCurrentMonth() && onTodayPress && (
+            <TouchableOpacity
+              onPress={onTodayPress}
+              style={[styles.todayButton, { backgroundColor: theme.colors.surfaceVariant || '#F1F3F4' }]}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.todayButtonText}>今天</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            onPress={handleMonthPress}
+            style={[styles.calendarButton, { backgroundColor: theme.colors.surfaceVariant || '#F1F3F4' }]}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.calendarIcon}>📅</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {Platform.OS === 'ios' && showPicker && (
         <Portal>
-          <Dialog visible={showPicker} onDismiss={() => setShowPicker(false)}>
-            <Dialog.Title>选择年月</Dialog.Title>
+          <Dialog 
+            visible={showPicker} 
+            onDismiss={() => setShowPicker(false)}
+            style={{ backgroundColor: theme.colors.surface, borderRadius: 28 }}
+          >
+            <Dialog.Title style={{ fontWeight: '800', fontSize: 20 }}>选择年月</Dialog.Title>
             <Dialog.Content>
               <DateTimePicker
                 value={pickerDate}
@@ -135,8 +152,19 @@ export function MonthNavigator({
               />
             </Dialog.Content>
             <Dialog.Actions>
-              <Button onPress={() => setShowPicker(false)}>取消</Button>
-              <Button onPress={handleConfirm}>确定</Button>
+              <Button 
+                onPress={() => setShowPicker(false)}
+                textColor={theme.colors.onSurfaceVariant}
+              >
+                取消
+              </Button>
+              <Button 
+                onPress={handleConfirm}
+                mode="contained"
+                style={{ borderRadius: 12 }}
+              >
+                确定
+              </Button>
             </Dialog.Actions>
           </Dialog>
         </Portal>
@@ -160,23 +188,53 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 4,
-    paddingVertical: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  leftSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  rightSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  navButton: {
+    margin: 0,
   },
   monthContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 8,
   },
   monthText: {
-    fontWeight: '500',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    fontSize: 15,
+    fontWeight: '700',
+    fontSize: 16,
+    letterSpacing: 0.5,
   },
   todayButton: {
-    marginLeft: -4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  todayButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#4DB6AC',
+  },
+  calendarButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  calendarIcon: {
+    fontSize: 18,
   },
 });
 

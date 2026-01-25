@@ -1,11 +1,10 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Card, Text, IconButton, useTheme } from 'react-native-paper';
-import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import { View, StyleSheet } from 'react-native';
+import { Card, Text, useTheme } from 'react-native-paper';
 import { formatDate, formatDateTime } from '../utils/formatters';
 import { parseCategory, CATEGORY_ICONS } from '../utils/constants';
 import { AmountBadge } from './AmountBadge';
-import { spacing } from '../theme/spacing';
+import spacing from '../theme/spacing';
 import type { Record } from '../types';
 
 interface RecordItemProps {
@@ -27,7 +26,7 @@ export function RecordItem({
     onPress?.(record);
   };
 
-  const handleDelete = () => {
+  const handleLongPress = () => {
     if (record.id && onDelete) {
       onDelete(record.id);
     }
@@ -35,7 +34,7 @@ export function RecordItem({
 
   // 解析分类显示
   const { parent, subcategory } = parseCategory(record.category);
-  const iconName = CATEGORY_ICONS[parent as keyof typeof CATEGORY_ICONS] || 'dots-horizontal';
+  const iconEmoji = CATEGORY_ICONS[parent as keyof typeof CATEGORY_ICONS] || '✨';
 
   return (
     <Card
@@ -43,66 +42,44 @@ export function RecordItem({
         styles.card,
         {
           backgroundColor: theme.colors.surface,
-          borderRadius: 12,
+          borderRadius: 20, // 更大的圆角
+          borderWidth: 0, // 去掉边框
+          elevation: 1, // 极其微妙的阴影
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.05,
+          shadowRadius: 10,
         },
       ]}
       onPress={handlePress}
-      mode="outlined"
+      onLongPress={onDelete ? handleLongPress : undefined}
+      mode="elevated"
       contentStyle={styles.cardContent}
     >
       <Card.Content>
         <View style={styles.content}>
           <View style={styles.leftSection}>
-            <View style={styles.header}>
-              <View style={styles.categoryContainer}>
-                <View style={styles.categoryRow}>
-                  <Icon
-                    name={iconName as any}
-                    size={20}
-                    color={theme.colors.primary}
-                    style={styles.categoryIcon}
-                  />
-                  <Text variant="titleMedium" style={styles.category}>
-                    {parent}
-                  </Text>
-                  {subcategory && (
-                    <>
-                      <Text variant="bodySmall" style={[styles.separator, { color: theme.colors.onSurfaceVariant }]}>
-                        {' > '}
-                      </Text>
-                      <Text variant="bodyMedium" style={[styles.subcategory, { color: theme.colors.primary }]}>
-                        {subcategory}
-                      </Text>
-                    </>
-                  )}
-                </View>
-              </View>
-              <AmountBadge amount={record.amount} type={record.type} size="medium" />
+            <View style={[styles.iconContainer, { backgroundColor: theme.colors.surfaceVariant || '#F8F9FA' }]}>
+              <Text style={styles.iconEmoji}>{iconEmoji}</Text>
             </View>
-            <View style={styles.meta}>
-              <Text variant="bodySmall" style={[styles.date, { color: theme.colors.onSurfaceVariant }]}>
-                {showTime ? formatDateTime(record.date) : formatDate(record.date)}
+            <View style={styles.infoSection}>
+              <Text variant="titleSmall" style={[styles.category, { color: theme.colors.onSurface }]}>
+                {parent}
+                {subcategory && (
+                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, fontWeight: '400' }}>
+                    {' · '}{subcategory}
+                  </Text>
+                )}
               </Text>
-              {record.note && (
-                <Text
-                  variant="bodySmall"
-                  style={[styles.note, { color: theme.colors.onSurfaceVariant }]}
-                  numberOfLines={1}
-                >
-                  {record.note}
-                </Text>
-              )}
+              <Text variant="bodySmall" style={[styles.date, { color: theme.colors.onSurfaceVariant }]}>
+                {record.note || (showTime ? formatDateTime(record.date) : formatDate(record.date))}
+              </Text>
             </View>
           </View>
-          {onDelete && record.id && (
-            <IconButton
-              icon="delete"
-              size={20}
-              iconColor={theme.colors.error}
-              onPress={handleDelete}
-              style={styles.deleteButton}
-            />
-          )}
+          
+          <View style={styles.rightSection}>
+            <AmountBadge amount={record.amount} type={record.type} size="medium" />
+          </View>
         </View>
       </Card.Content>
     </Card>
@@ -112,67 +89,50 @@ export function RecordItem({
 const styles = StyleSheet.create({
   card: {
     marginHorizontal: spacing.lg,
-    marginVertical: spacing.md,
-    elevation: 0,
+    marginVertical: 6, // 稍微紧凑一点
   },
   cardContent: {
-    padding: spacing.lg,
+    padding: 0, // 使用内部 padding
   },
   content: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 4,
+    padding: 12,
   },
   leftSection: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 2,
-  },
-  categoryContainer: {
-    flex: 1,
-  },
-  categoryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
+    flex: 1,
   },
-  categoryIcon: {
-    marginRight: spacing.sm,
+  iconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  infoSection: {
+    flex: 1,
+    justifyContent: 'center',
   },
   category: {
-    fontWeight: '500',
-    fontSize: 15,
-  },
-  separator: {
-    marginHorizontal: 4,
-    opacity: 0.5,
-  },
-  subcategory: {
-    fontWeight: '400',
-    fontSize: 13,
-  },
-  meta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 2,
+    fontWeight: '700',
+    fontSize: 14,
+    marginBottom: 2,
   },
   date: {
     fontSize: 11,
+    fontWeight: '500',
     opacity: 0.6,
   },
-  note: {
-    fontSize: 11,
-    flex: 1,
-    opacity: 0.6,
+  rightSection: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
   },
-  deleteButton: {
-    margin: 0,
+  iconEmoji: {
+    fontSize: 22,
   },
 });
 

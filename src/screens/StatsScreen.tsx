@@ -9,6 +9,7 @@ import { OverviewCard } from '../components/stats/OverviewCard';
 import { TrendChart } from '../components/stats/TrendChart';
 import { CategoryPieChart } from '../components/stats/CategoryPieChart';
 import { CategoryRanking } from '../components/stats/CategoryRanking';
+import spacing from '../theme/spacing';
 
 export function StatsScreen() {
   const theme = useTheme();
@@ -53,18 +54,20 @@ export function StatsScreen() {
 
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      style={[styles.container, { backgroundColor: theme.colors.background || '#FBFBFC' }]}
       edges={['top']}
     >
-      <DateRangeSelector
-        year={selectedYear}
-        month={selectedMonth}
-        onDateChange={handleDateChange}
-        onRangeChange={handleRangeChange}
-      />
+      <View style={{ backgroundColor: theme.colors.surface }}>
+        <DateRangeSelector
+          year={selectedYear}
+          month={selectedMonth}
+          onDateChange={handleDateChange}
+          onRangeChange={handleRangeChange}
+        />
+      </View>
       {loading && summary.income === 0 && summary.expense === 0 ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" />
+          <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
       ) : (
         <ScrollView
@@ -77,6 +80,7 @@ export function StatsScreen() {
               colors={[theme.colors.primary]}
             />
           }
+          showsVerticalScrollIndicator={false}
         >
           <OverviewCard summary={summary} comparison={comparison} />
           
@@ -87,12 +91,12 @@ export function StatsScreen() {
           {expenseCategories.length > 0 && (
             <>
               <CategoryPieChart
-                title="支出分类统计"
+                title="支出占比"
                 categories={expenseCategories}
                 type="expense"
               />
               <CategoryRanking
-                title="支出排行榜"
+                title="支出排行"
                 categories={expenseCategories}
                 type="expense"
                 maxItems={5}
@@ -103,12 +107,12 @@ export function StatsScreen() {
           {incomeCategories.length > 0 && (
             <>
               <CategoryPieChart
-                title="收入分类统计"
+                title="收入占比"
                 categories={incomeCategories}
                 type="income"
               />
               <CategoryRanking
-                title="收入排行榜"
+                title="收入排行"
                 categories={incomeCategories}
                 type="income"
                 maxItems={5}
@@ -118,17 +122,12 @@ export function StatsScreen() {
 
           {expenseCategories.length === 0 && incomeCategories.length === 0 && (
             <View style={styles.emptyContainer}>
+              <Text variant="displaySmall" style={{ fontSize: 40, marginBottom: 16 }}>🍃</Text>
               <Text
-                variant="bodyLarge"
-                style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}
+                variant="titleSmall"
+                style={[styles.emptyText, { color: theme.colors.onSurfaceVariant, opacity: 0.5 }]}
               >
-                暂无统计数据
-              </Text>
-              <Text
-                variant="bodyMedium"
-                style={[styles.emptyHint, { color: theme.colors.onSurfaceVariant }]}
-              >
-                添加一些记账记录后即可查看统计
+                暂时没有统计数据哦
               </Text>
             </View>
           )}
@@ -151,20 +150,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 12,
+    paddingBottom: 40,
+    paddingTop: 12,
   },
   emptyContainer: {
-    padding: 24,
+    padding: 60,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyText: {
-    marginBottom: 6,
-    fontSize: 15,
-    opacity: 0.6,
-  },
-  emptyHint: {
-    fontSize: 13,
-    opacity: 0.5,
+    fontWeight: '700',
   },
 });
 

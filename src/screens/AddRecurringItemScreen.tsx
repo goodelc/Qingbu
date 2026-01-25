@@ -21,7 +21,6 @@ import {
   formatCategory,
   type CategoryName,
 } from '../utils/constants';
-import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import type { RecordType, PeriodType, RecurringItem } from '../types';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -269,7 +268,7 @@ export function AddRecurringItemScreen({ navigation, route }: AddRecurringItemSc
               </Text>
               <View style={styles.categoryContainer}>
                 {currentCategories.map((category) => {
-                  const icon = CATEGORY_ICONS[category] as any;
+                  const iconEmoji = CATEGORY_ICONS[category] || '✨';
                   const isSelected = parentCategory === category;
                   return (
                     <Button
@@ -281,7 +280,7 @@ export function AddRecurringItemScreen({ navigation, route }: AddRecurringItemSc
                         setSubcategory(undefined);
                       }}
                       style={styles.categoryButton}
-                      icon={() => <Icon name={icon} size={20} />}
+                      icon={() => <Text style={{ fontSize: 18 }}>{iconEmoji}</Text>}
                     >
                       {category}
                     </Button>

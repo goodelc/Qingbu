@@ -15,8 +15,8 @@ export function AmountBadge({ amount, type, size = 'medium' }: AmountBadgeProps)
   const isIncome = type === 'income';
   const color = isIncome ? theme.colors.primary : theme.colors.error;
 
-  const fontSize = size === 'small' ? 14 : size === 'large' ? 20 : 16;
-  const fontWeight = '600'; // 统一使用 600
+  const fontSize = size === 'small' ? 12 : size === 'large' ? 24 : 16;
+  const fontWeight = '800'; // 更粗的字体
 
   return (
     <View style={styles.container}>
@@ -26,8 +26,7 @@ export function AmountBadge({ amount, type, size = 'medium' }: AmountBadgeProps)
           { color, fontSize, fontWeight },
         ]}
       >
-        {isIncome ? '+' : '-'}
-        {formatAmount(amount)}
+        {isIncome ? '+' : '-'}{formatAmount(amount).replace('¥', '')}
       </Text>
     </View>
   );

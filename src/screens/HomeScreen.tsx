@@ -1,14 +1,14 @@
 import React, { useCallback, useState, useMemo } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl, Alert, Animated } from 'react-native';
-import { FAB, Text, useTheme, ActivityIndicator } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, StyleSheet, FlatList, RefreshControl, Animated, Platform } from 'react-native';
+import { FAB, Text, useTheme, ActivityIndicator, Portal, Dialog, Button } from 'react-native-paper';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRecords } from '../hooks/useRecords';
 import { RecordItem } from '../components/RecordItem';
 import { MonthlySummaryCard } from '../components/MonthlySummaryCard';
 import { MonthNavigator } from '../components/MonthNavigator';
 import { formatDateGroup } from '../utils/formatters';
-import { spacing } from '../theme/spacing';
+import spacing from '../theme/spacing';
 import type { Record } from '../types';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { CompositeNavigationProp } from '@react-navigation/native';
@@ -32,6 +32,7 @@ type GroupedRecord = {
 
 export function HomeScreen({ navigation }: HomeScreenProps) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const currentDate = new Date();
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1);
@@ -40,6 +41,12 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
     useRecords({ year: selectedYear, month: selectedMonth });
   const [fabVisible, setFabVisible] = useState(true);
   const fabAnimation = useState(new Animated.Value(1))[0];
+  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+  const [recordToDelete, setRecordToDelete] = useState<number | null>(null);
+  
+  // Calculate FAB bottom position to account for tab bar
+  const tabBarHeight = Platform.OS === 'ios' ? 88 : 70;
+  const fabBottom = tabBarHeight + 16; // 16px spacing above tab bar
 
   // 当页面获得焦点时（从其他页面返回时）自动刷新数据
   useFocusEffect(
@@ -149,31 +156,30 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   };
 
   const handleDelete = useCallback(
-    async (id: number) => {
-      Alert.alert(
-        '确认删除',
-        '确定要删除这条记录吗？此操作无法撤销。',
-        [
-          {
-            text: '取消',
-            style: 'cancel',
-          },
-          {
-            text: '删除',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                await deleteRecord(id);
-              } catch (error) {
-                console.error('Failed to delete record:', error);
-                Alert.alert('错误', '删除失败，请重试');
-              }
-            },
-          },
-        ]
-      );
+    (id: number) => {
+      setRecordToDelete(id);
+      setDeleteDialogVisible(true);
     },
-    [deleteRecord]
+    []
+  );
+
+  const confirmDelete = useCallback(
+    async () => {
+      if (recordToDelete) {
+        try {
+          await deleteRecord(recordToDelete);
+          setDeleteDialogVisible(false);
+          setRecordToDelete(null);
+        } catch (error) {
+          console.error('Failed to delete record:', error);
+          setDeleteDialogVisible(false);
+          setRecordToDelete(null);
+          // Show error dialog
+          setDeleteDialogVisible(false);
+        }
+      }
+    },
+    [recordToDelete, deleteRecord]
   );
 
   // 处理滚动事件，隐藏/显示 FAB
@@ -237,22 +243,24 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
 
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      style={[styles.container, { backgroundColor: theme.colors.background || '#FBFBFC' }]}
       edges={['top']}
     >
-      <MonthNavigator
-        year={selectedYear}
-        month={selectedMonth}
-        onPreviousMonth={handlePreviousMonth}
-        onNextMonth={handleNextMonth}
-        onMonthChange={handleMonthChange}
-        onTodayPress={handleTodayPress}
-      />
+      <View style={{ backgroundColor: theme.colors.surface }}>
+        <MonthNavigator
+          year={selectedYear}
+          month={selectedMonth}
+          onPreviousMonth={handlePreviousMonth}
+          onNextMonth={handleNextMonth}
+          onMonthChange={handleMonthChange}
+          onTodayPress={handleTodayPress}
+        />
+      </View>
       <View style={styles.content}>
         <MonthlySummaryCard summary={summary} year={year} month={month} />
         {loading && records.length === 0 ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" />
+            <ActivityIndicator size="large" color={theme.colors.primary} />
           </View>
         ) : (
           <FlatList
@@ -263,9 +271,10 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                 ? `header-${item.data.dateKey}` 
                 : item.data.id?.toString() || `record-${item.data.date}-${index}`
             }
-            contentContainerStyle={
-              records.length === 0 ? styles.emptyList : undefined
-            }
+            contentContainerStyle={[
+              styles.listContent,
+              records.length === 0 && styles.emptyList
+            ]}
             ListEmptyComponent={renderEmpty}
             refreshControl={
               <RefreshControl
@@ -276,13 +285,54 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
             }
             onScroll={handleScroll}
             scrollEventThrottle={16}
+            showsVerticalScrollIndicator={false}
           />
         )}
       </View>
+      
+      <Portal>
+        <Dialog
+          visible={deleteDialogVisible}
+          onDismiss={() => {
+            setDeleteDialogVisible(false);
+            setRecordToDelete(null);
+          }}
+          style={{ backgroundColor: theme.colors.surface, borderRadius: 28 }}
+        >
+          <Dialog.Title style={{ fontWeight: '800', fontSize: 20 }}>确认删除</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={{ opacity: 0.7 }}>
+              确定要删除这条记录吗？此操作无法撤销。
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button
+              onPress={() => {
+                setDeleteDialogVisible(false);
+                setRecordToDelete(null);
+              }}
+              textColor={theme.colors.onSurfaceVariant}
+            >
+              取消
+            </Button>
+            <Button
+              onPress={confirmDelete}
+              mode="contained"
+              buttonColor={theme.colors.error}
+              textColor="#FFFFFF"
+              style={{ borderRadius: 12 }}
+            >
+              删除
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+      
       <Animated.View
         style={[
           styles.fabContainer,
           {
+            bottom: fabBottom,
             opacity: fabAnimation,
             transform: [
               {
@@ -299,11 +349,16 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
             styles.fab,
             {
               backgroundColor: theme.colors.primary,
-              elevation: 4,
+              elevation: 8,
+              borderRadius: 30,
+              width: 60,
+              height: 60,
+              justifyContent: 'center',
+              alignItems: 'center',
             },
           ]}
           onPress={handleAddPress}
-          color={theme.colors.onPrimary}
+          color="#FFFFFF"
         />
       </Animated.View>
     </SafeAreaView>
@@ -317,6 +372,10 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
+  listContent: {
+    paddingBottom: 100, // 为 FAB 留出空间
+    paddingTop: 12,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -329,36 +388,37 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 48,
+    paddingVertical: 100,
+    opacity: 0.5,
   },
   emptyText: {
-    marginBottom: 6,
-    fontSize: 15,
-    opacity: 0.6,
+    marginTop: 16,
+    fontSize: 16,
+    fontWeight: '600',
   },
   emptyHint: {
-    fontSize: 13,
-    opacity: 0.5,
+    fontSize: 14,
+    marginTop: 8,
   },
   fabContainer: {
     position: 'absolute',
-    right: spacing.lg,
-    bottom: spacing.lg,
+    right: 24,
   },
   fab: {
     margin: 0,
   },
   dateHeader: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    marginTop: spacing.md,
-    marginBottom: spacing.xs,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: spacing.lg + 4,
+    paddingVertical: 12,
+    marginTop: 12,
+    marginBottom: 4,
   },
   dateHeaderText: {
-    fontWeight: '500',
-    fontSize: 13,
-    opacity: 0.8,
+    fontWeight: '800',
+    fontSize: 11,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    opacity: 0.4,
   },
 });
 

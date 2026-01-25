@@ -1,11 +1,9 @@
 import React from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
-import { Card, Text, useTheme, ProgressBar } from 'react-native-paper';
+import { Card, Text, useTheme } from 'react-native-paper';
 import { formatAmount } from '../../utils/formatters';
-import { spacing } from '../../theme/spacing';
+import spacing from '../../theme/spacing';
 import type { CategoryStat } from '../../types';
-import { CATEGORY_ICONS } from '../../utils/constants';
-import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
 interface CategoryRankingProps {
   title: string;
@@ -29,32 +27,24 @@ export function CategoryRanking({
           styles.card,
           {
             backgroundColor: theme.colors.surface,
-            marginHorizontal: spacing.lg,
-            marginVertical: spacing.sm,
-            borderRadius: 16,
-            ...(theme.dark
-              ? {
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                  elevation: 1,
-                }
-              : {
-                  elevation: 1,
-                }),
+            marginHorizontal: 24,
+            marginVertical: 12,
+            borderRadius: 32,
+            elevation: 0,
+            borderWidth: 1,
+            borderColor: theme.colors.outline + '20' || '#F1F3F4',
           },
         ]}
       >
-        <Card.Content>
-          <Text variant="titleMedium" style={[styles.title, { color: theme.colors.onSurface }]}>
+        <Card.Content style={{ padding: 24 }}>
+          <Text variant="titleMedium" style={[styles.title, { color: theme.colors.onSurface, fontWeight: '800' }]}>
             {title}
           </Text>
           <Text
             variant="bodyMedium"
-            style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}
+            style={[styles.emptyText, { color: theme.colors.onSurfaceVariant, textAlign: 'center', marginTop: 20 }]}
           >
-            暂无数据
+            暂无排行数据
           </Text>
         </Card.Content>
       </Card>
@@ -63,6 +53,7 @@ export function CategoryRanking({
 
   const topCategories = categories.slice(0, maxItems);
   const maxAmount = topCategories[0]?.amount || 1;
+  const accentColor = type === 'income' ? '#4DB6AC' : '#EF5350';
 
   return (
     <Card
@@ -70,57 +61,58 @@ export function CategoryRanking({
         styles.card,
         {
           backgroundColor: theme.colors.surface,
-          marginHorizontal: 16,
-          marginVertical: 8,
+          marginHorizontal: 24,
+          marginVertical: 12,
+          borderRadius: 32,
+          elevation: 0,
+          borderWidth: 1,
+          borderColor: theme.colors.outline + '20' || '#F1F3F4',
         },
       ]}
     >
-      <Card.Content>
-        <Text variant="titleMedium" style={[styles.title, { color: theme.colors.onSurface }]}>
+      <Card.Content style={{ padding: 24 }}>
+        <Text variant="titleMedium" style={[styles.title, { color: theme.colors.onSurface, fontWeight: '800' }]}>
           {title}
         </Text>
         {topCategories.map((item, index) => {
-          const iconName = CATEGORY_ICONS[item.category as keyof typeof CATEGORY_ICONS] || 'dots-horizontal';
-          const color = type === 'income' ? theme.colors.primary : theme.colors.error;
-          
           return (
             <View key={item.category} style={styles.rankingItem}>
               <View style={styles.rankHeader}>
                 <View style={styles.rankLeft}>
-                  <View style={[styles.rankNumber, { backgroundColor: color }]}>
-                    <Text style={styles.rankNumberText}>
+                  <View style={[styles.rankNumber, { backgroundColor: accentColor + '15' }]}>
+                    <Text style={[styles.rankNumberText, { color: accentColor }]}>
                       {index + 1}
                     </Text>
                   </View>
-                  <Icon
-                    name={iconName as any}
-                    size={24}
-                    color={color}
-                    style={styles.icon}
-                  />
                   <View style={styles.categoryInfo}>
-                    <Text variant="bodyLarge" style={[styles.categoryName, { color: theme.colors.onSurface }]}>
+                    <Text variant="bodyMedium" style={[styles.categoryName, { color: theme.colors.onSurface, fontWeight: '700' }]}>
                       {item.category}
                     </Text>
-                    <Text variant="bodySmall" style={[styles.count, { color: theme.colors.onSurfaceVariant }]}>
-                      {item.count}笔
+                    <Text variant="bodySmall" style={[styles.count, { color: theme.colors.onSurfaceVariant, fontWeight: '600' }]}>
+                      {item.count} 笔
                     </Text>
                   </View>
                 </View>
                 <View style={styles.amountContainer}>
-                  <Text variant="titleMedium" style={[styles.amount, { color }]}>
+                  <Text variant="bodyMedium" style={[styles.amount, { color: theme.colors.onSurface, fontWeight: '800' }]}>
                     {formatAmount(item.amount)}
                   </Text>
-                  <Text variant="bodySmall" style={[styles.percentage, { color: theme.colors.onSurfaceVariant }]}>
+                  <Text variant="bodySmall" style={[styles.percentage, { color: theme.colors.onSurfaceVariant, fontWeight: '600' }]}>
                     {item.percentage.toFixed(1)}%
                   </Text>
                 </View>
               </View>
-              <ProgressBar
-                progress={item.amount / maxAmount}
-                color={color}
-                style={styles.progressBar}
-              />
+              <View style={[styles.progressContainer, { backgroundColor: accentColor + '10' }]}>
+                <View
+                  style={[
+                    styles.progressBar,
+                    {
+                      width: `${(item.amount / maxAmount) * 100}%`,
+                      backgroundColor: accentColor,
+                    },
+                  ]}
+                />
+              </View>
             </View>
           );
         })}
@@ -131,76 +123,67 @@ export function CategoryRanking({
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: 0,
+    overflow: 'hidden',
   },
   title: {
-    fontWeight: '500',
-    marginBottom: spacing.md,
-    fontSize: 15,
+    fontSize: 16,
+    marginBottom: 24,
   },
   emptyText: {
-    textAlign: 'center',
-    paddingVertical: spacing.md,
-    fontSize: 13,
-    opacity: 0.6,
+    opacity: 0.5,
   },
   rankingItem: {
-    marginBottom: spacing.md,
+    marginBottom: 20,
   },
   rankHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: 10,
   },
   rankLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    gap: 12,
   },
   rankNumber: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing.sm,
   },
   rankNumberText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 12,
-  },
-  icon: {
-    marginRight: spacing.sm,
+    fontWeight: '800',
+    fontSize: 13,
   },
   categoryInfo: {
-    flex: 1,
+    justifyContent: 'center',
   },
   categoryName: {
-    fontWeight: '500',
-    marginBottom: 2,
     fontSize: 14,
   },
   count: {
     fontSize: 11,
-    opacity: 0.6,
+    opacity: 0.5,
   },
   amountContainer: {
     alignItems: 'flex-end',
   },
   amount: {
-    fontWeight: '600',
-    marginBottom: 2,
-    fontSize: 15,
+    fontSize: 14,
   },
   percentage: {
     fontSize: 11,
-    opacity: 0.6,
+    opacity: 0.5,
+  },
+  progressContainer: {
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
   },
   progressBar: {
-    height: 4,
-    borderRadius: 4,
+    height: '100%',
+    borderRadius: 3,
   },
 });
-

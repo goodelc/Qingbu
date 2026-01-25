@@ -1,0 +1,8 @@
+
+{
+  "name": "Qingbu (轻簿) - Modern Minimalist Expense Tracker",
+  "description": "A refined, contemporary expense tracking application featuring minimalist design, modern typography, and intuitive data visualization.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Platform, Linking } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Platform, Linking, TouchableOpacity } from 'react-native';
 import { List, Switch, Text, useTheme, Divider, Button, Dialog, Portal, RadioButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -26,6 +26,7 @@ export function SettingsScreen() {
   const { theme: appTheme, toggleTheme } = useAppStore();
   const isDark = appTheme === 'dark';
   const [exportDialogVisible, setExportDialogVisible] = useState(false);
+  const [aboutDialogVisible, setAboutDialogVisible] = useState(false);
   const [exportRange, setExportRange] = useState<ExportRange>('all');
   const [isExporting, setIsExporting] = useState(false);
 
@@ -259,56 +260,56 @@ export function SettingsScreen() {
     }
   };
 
+  const settingsItems = [
+    { label: '主题设置', emoji: '🎨', action: toggleTheme, right: <Switch value={isDark} onValueChange={toggleTheme} /> },
+    { label: '固定收支', emoji: '🔄', action: () => navigation.navigate('RecurringItems') },
+    { label: '数据导出', emoji: '📊', action: () => setExportDialogVisible(true) },
+    { label: '关于轻簿', emoji: 'ℹ️', action: () => setAboutDialogVisible(true) },
+  ];
+
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      style={[styles.container, { backgroundColor: theme.colors.background || '#FBFBFC' }]}
       edges={['top']}
     >
       <View style={styles.header}>
-        <Text variant="headlineMedium" style={[styles.title, { color: theme.colors.onBackground }]}>
+        <Text variant="headlineMedium" style={[styles.title, { color: theme.colors.onSurface, fontWeight: '800' }]}>
           我的
         </Text>
       </View>
-      <ScrollView style={styles.scrollView}>
-        <List.Section>
-          <List.Subheader>外观</List.Subheader>
-          <List.Item
-            title="深色模式"
-            description="切换深色/浅色主题"
-            left={(props) => <List.Icon {...props} icon="theme-light-dark" />}
-            right={() => (
-              <Switch value={isDark} onValueChange={toggleTheme} />
-            )}
-          />
-        </List.Section>
-
-        <Divider style={styles.divider} />
-
-        <List.Section>
-          <List.Subheader>数据</List.Subheader>
-          <List.Item
-            title="固定收支"
-            description="管理固定收入和支出项目"
-            left={(props) => <List.Icon {...props} icon="repeat" />}
-            onPress={() => navigation.navigate('RecurringItems')}
-          />
-          <List.Item
-            title="数据导出"
-            description="导出记账数据为 CSV 文件"
-            left={(props) => <List.Icon {...props} icon="export" />}
-            onPress={() => setExportDialogVisible(true)}
-          />
-        </List.Section>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.menuContainer}>
+          {settingsItems.map((item) => (
+            <TouchableOpacity 
+              key={item.label} 
+              style={[
+                styles.menuItem, 
+                { 
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.outline + '20' || 'rgba(0,0,0,0.05)',
+                }
+              ]}
+              onPress={item.action}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuItemLeft}>
+                <Text style={styles.menuEmoji}>{item.emoji}</Text>
+                <Text style={[styles.menuLabel, { color: theme.colors.onSurface }]}>{item.label}</Text>
+              </View>
+              {item.right || <Text style={[styles.chevron, { color: theme.colors.onSurfaceVariant, opacity: 0.3 }]}>›</Text>}
+            </TouchableOpacity>
+          ))}
+        </View>
 
         <Portal>
           <Dialog
             visible={exportDialogVisible}
             onDismiss={() => !isExporting && setExportDialogVisible(false)}
-            style={{ backgroundColor: theme.colors.surface }}
+            style={{ backgroundColor: theme.colors.surface, borderRadius: 28 }}
           >
-            <Dialog.Title>导出数据</Dialog.Title>
+            <Dialog.Title style={{ fontWeight: '800' }}>导出数据</Dialog.Title>
             <Dialog.Content>
-              <Text variant="bodyMedium" style={{ marginBottom: 16 }}>
+              <Text variant="bodyMedium" style={{ marginBottom: 16, opacity: 0.7 }}>
                 选择要导出的数据范围：
               </Text>
               <RadioButton.Group
@@ -319,16 +320,19 @@ export function SettingsScreen() {
                   label="全部数据"
                   value="all"
                   disabled={isExporting}
+                  labelStyle={{ fontSize: 14 }}
                 />
                 <RadioButton.Item
                   label="本月数据"
                   value="month"
                   disabled={isExporting}
+                  labelStyle={{ fontSize: 14 }}
                 />
                 <RadioButton.Item
                   label="本年数据"
                   value="year"
                   disabled={isExporting}
+                  labelStyle={{ fontSize: 14 }}
                 />
               </RadioButton.Group>
             </Dialog.Content>
@@ -336,6 +340,7 @@ export function SettingsScreen() {
               <Button
                 onPress={() => setExportDialogVisible(false)}
                 disabled={isExporting}
+                textColor={theme.colors.onSurfaceVariant}
               >
                 取消
               </Button>
@@ -343,14 +348,38 @@ export function SettingsScreen() {
                 onPress={handleExport}
                 loading={isExporting}
                 disabled={isExporting}
+                mode="contained"
+                style={{ borderRadius: 12 }}
               >
-                导出
+                开始导出
               </Button>
             </Dialog.Actions>
           </Dialog>
         </Portal>
 
-        <Divider style={styles.divider} />
+        <Portal>
+          <Dialog
+            visible={aboutDialogVisible}
+            onDismiss={() => setAboutDialogVisible(false)}
+            style={{ backgroundColor: theme.colors.surface, borderRadius: 28 }}
+          >
+            <Dialog.Title style={{ fontWeight: '800', fontSize: 20 }}>关于轻簿</Dialog.Title>
+            <Dialog.Content>
+              <Text variant="bodyMedium" style={{ opacity: 0.7, lineHeight: 24 }}>
+                Qingbu v1.0.0{'\n'}极简、高效、纯净的记账应用。
+              </Text>
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button
+                onPress={() => setAboutDialogVisible(false)}
+                mode="contained"
+                style={{ borderRadius: 12 }}
+              >
+                知道了
+              </Button>
+            </Dialog.Actions>
+          </Dialog>
+        </Portal>
 
         <View style={styles.footer}>
           <Text
@@ -370,26 +399,61 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 6,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 16,
   },
   title: {
-    fontWeight: '500',
-    fontSize: 20,
+    fontSize: 28,
   },
   scrollView: {
     flex: 1,
   },
-  divider: {
-    marginVertical: 8,
+  scrollContent: {
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+  },
+  menuContainer: {
+    gap: 0,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 20,
+    borderRadius: 24,
+    borderWidth: 1,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  menuItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  menuEmoji: {
+    fontSize: 22,
+  },
+  menuLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  chevron: {
+    fontSize: 24,
+    fontWeight: '300',
   },
   footer: {
-    padding: 16,
+    marginTop: 40,
     alignItems: 'center',
   },
   footerText: {
-    opacity: 0.6,
+    opacity: 0.4,
+    fontWeight: '600',
+    letterSpacing: 1,
   },
 });
 

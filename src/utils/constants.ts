@@ -40,34 +40,34 @@ export type ExpenseCategory = typeof EXPENSE_CATEGORIES[number];
 export type IncomeCategory = typeof INCOME_CATEGORIES[number];
 export type CategoryName = ExpenseCategory | IncomeCategory;
 
-// 分类图标映射（使用 MaterialCommunityIcons）
+// 分类图标映射（使用 Emoji，参考 Google AI Studio 输出）
 export const CATEGORY_ICONS: Record<CategoryName, string> = {
   // 支出分类图标
-  '餐饮': 'food-fork-drink',
-  '交通': 'car',
-  '购物': 'shopping',
-  '娱乐': 'movie-open',
-  '医疗': 'hospital-building',
-  '教育': 'school',
-  '住房': 'home',
-  '通讯': 'phone',
-  '水电': 'lightning-bolt',
-  '服饰': 'tshirt-crew',
-  '日用品': 'basket',
-  '育儿': 'baby-face-outline',
-  '还款': 'credit-card',
-  '零食': 'cookie',
-  '烟酒': 'glass-wine',
+  '餐饮': '🍽️',
+  '交通': '🚗',
+  '购物': '🛍️',
+  '娱乐': '🎮',
+  '医疗': '🏥',
+  '教育': '📚',
+  '住房': '🏠',
+  '通讯': '📱',
+  '水电': '⚡',
+  '服饰': '👔',
+  '日用品': '🧻',
+  '育儿': '👶',
+  '还款': '💳',
+  '零食': '🍪',
+  '烟酒': '🍷',
   // 收入分类图标
-  '工资': 'cash-multiple',
-  '奖金': 'gift',
-  '投资': 'chart-line',
-  '兼职': 'briefcase',
-  '理财': 'bank',
-  '礼金': 'gift-outline',
-  '退款': 'cash-refund',
+  '工资': '💰',
+  '奖金': '🎁',
+  '投资': '📈',
+  '兼职': '💼',
+  '理财': '🏦',
+  '礼金': '🧧',
+  '退款': '↩️',
   // 共用分类（支出和收入都有）
-  '其他': 'dots-horizontal',
+  '其他': '✨',
 };
 
 // 获取子分类

@@ -1,11 +1,10 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useTheme } from 'react-native-paper';
 import { CustomLightTheme, CustomDarkTheme } from '../theme/customTheme';
-import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '../store/useAppStore';
 import { HomeScreen } from '../screens/HomeScreen';
@@ -40,19 +39,29 @@ function MainTabs() {
         headerShown: false,
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
-        tabBarStyle: {
-          backgroundColor: theme.colors.surface,
-          borderTopWidth: StyleSheet.hairlineWidth,
-          borderTopColor: theme.colors.outline,
-          elevation: 0,
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
-        },
+    tabBarStyle: {
+      backgroundColor: theme.colors.surface,
+      borderTopWidth: 0,
+      elevation: 20, // 更强的阴影效果
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -4 },
+      shadowOpacity: 0.08,
+      shadowRadius: 15,
+      height: Platform.OS === 'ios' ? 88 : 70, // 适配 iOS 安全区域
+      paddingBottom: Platform.OS === 'ios' ? 30 : 12,
+      paddingTop: 12,
+      borderTopLeftRadius: 32, // 超大圆角
+      borderTopRightRadius: 32,
+      position: 'absolute', // 让内容可以透过去（如果背景透明）
+      bottom: 0,
+      left: 0,
+      right: 0,
+    },
+    tabBarLabelStyle: {
+      fontSize: 10,
+      fontWeight: '700',
+      marginTop: 2,
+    },
         tabBarIconStyle: {
           marginTop: 4,
         },
@@ -63,13 +72,9 @@ function MainTabs() {
         component={HomeScreen}
         options={{
           tabBarLabel: '首页',
-          tabBarIcon: ({ color, focused }) => (
-            <Icon name="home" color={color} size={24} />
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.6 }}>🏠</Text>
           ),
-          tabBarLabelStyle: ({ focused }) => ({
-            fontSize: 12,
-            fontWeight: focused ? '600' : '500',
-          }),
         }}
       />
       <Tab.Screen
@@ -77,13 +82,9 @@ function MainTabs() {
         component={StatsScreen}
         options={{
           tabBarLabel: '统计',
-          tabBarIcon: ({ color, focused }) => (
-            <Icon name="chart-bar" color={color} size={24} />
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.6 }}>📊</Text>
           ),
-          tabBarLabelStyle: ({ focused }) => ({
-            fontSize: 12,
-            fontWeight: focused ? '600' : '500',
-          }),
         }}
       />
       <Tab.Screen
@@ -91,13 +92,9 @@ function MainTabs() {
         component={SettingsScreen}
         options={{
           tabBarLabel: '我的',
-          tabBarIcon: ({ color, focused }) => (
-            <Icon name="account" color={color} size={24} />
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.6 }}>👤</Text>
           ),
-          tabBarLabelStyle: ({ focused }) => ({
-            fontSize: 12,
-            fontWeight: focused ? '600' : '500',
-          }),
         }}
       />
     </Tab.Navigator>
@@ -135,9 +132,12 @@ export function AppNavigator() {
           options={{
             presentation: 'modal',
             headerShown: false,
+            animation: 'slide_from_bottom',
             contentStyle: {
-              backgroundColor: paperTheme.colors.background,
+              backgroundColor: 'transparent',
             },
+            gestureEnabled: true,
+            gestureDirection: 'vertical',
           }}
         />
         <Stack.Screen
