@@ -50,35 +50,25 @@ export function OverviewCard({ summary, comparison }: OverviewCardProps) {
         styles.card,
         {
           backgroundColor: theme.colors.surface,
-          marginHorizontal: spacing.lg,
-          marginVertical: spacing.sm,
-          borderRadius: 16,
-          ...(isDark
-            ? {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-                elevation: 1,
-              }
-            : {
-                elevation: 1,
-              }),
+          marginHorizontal: 24,
+          marginVertical: 12,
+          borderRadius: 32,
+          elevation: 0,
+          borderWidth: 1,
+          borderColor: theme.colors.outline + '20' || '#F1F3F4',
         },
       ]}
     >
       <Card.Content style={styles.content}>
-        <View style={styles.row}>
-          <View style={[styles.item, styles.incomeItem, { backgroundColor: theme.colors.primaryContainer }]}>
-            <Text variant="bodyMedium" style={[styles.label, { color: theme.colors.onPrimaryContainer }]}>
-              总收入
+        <View style={styles.summaryGrid}>
+          <View style={[styles.summaryItem, { backgroundColor: theme.colors.primaryContainer + '40' }]}>
+            <Text variant="bodySmall" style={[styles.label, { color: theme.colors.primary, fontWeight: '800' }]}>
+              月收入
             </Text>
             <Text
-              variant="headlineMedium"
-              style={[styles.amount, { color: theme.colors.primary }]}
+              variant="headlineSmall"
+              style={[styles.amount, { color: theme.colors.primary, fontWeight: '900' }]}
               numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.7}
             >
               {formatAmount(summary.income)}
             </Text>
@@ -88,16 +78,14 @@ export function OverviewCard({ summary, comparison }: OverviewCardProps) {
             )}
           </View>
 
-          <View style={[styles.item, styles.expenseItem, { backgroundColor: (theme.colors as any).errorContainer || theme.colors.error + '20' }]}>
-            <Text variant="bodyMedium" style={[styles.label, { color: theme.colors.error }]}>
-              总支出
+          <View style={[styles.summaryItem, { backgroundColor: theme.colors.errorContainer + '40' }]}>
+            <Text variant="bodySmall" style={[styles.label, { color: theme.colors.error, fontWeight: '800' }]}>
+              月支出
             </Text>
             <Text
-              variant="headlineMedium"
-              style={[styles.amount, { color: theme.colors.error }]}
+              variant="headlineSmall"
+              style={[styles.amount, { color: theme.colors.error, fontWeight: '900' }]}
               numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.7}
             >
               {formatAmount(summary.expense)}
             </Text>
@@ -108,27 +96,26 @@ export function OverviewCard({ summary, comparison }: OverviewCardProps) {
           </View>
         </View>
 
-        <View style={[styles.item, styles.balanceItem, { backgroundColor: balanceColor === theme.colors.primary ? theme.colors.primaryContainer : (theme.colors as any).errorContainer || theme.colors.error + '20' }]}>
-          <Text variant="bodyMedium" style={[styles.label, { color: balanceColor }]}>
-            结余
-          </Text>
-          <Text
-            variant="headlineLarge"
-            style={[
-              styles.amount,
-              {
-                color: balanceColor,
-              },
-            ]}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.7}
-          >
-            {formatAmount(summary.balance)}
-          </Text>
-          {comparison && renderChangeIndicator(
-            comparison.balanceChange,
-            comparison.balanceChangePercent
+        <View style={[styles.balanceItem, { backgroundColor: balanceColor + '10' }]}>
+          <View>
+            <Text variant="bodySmall" style={[styles.label, { color: balanceColor, fontWeight: '800' }]}>
+              本月结余
+            </Text>
+            <Text
+              variant="headlineMedium"
+              style={[styles.balanceAmount, { color: balanceColor, fontWeight: '900' }]}
+            >
+              {formatAmount(summary.balance)}
+            </Text>
+          </View>
+          {comparison && (
+            <View style={styles.balanceComparison}>
+              <Text style={{ fontSize: 10, fontWeight: '700', color: theme.colors.onSurfaceVariant, opacity: 0.5, marginBottom: 4 }}>较上月</Text>
+              {renderChangeIndicator(
+                comparison.balanceChange,
+                comparison.balanceChangePercent
+              )}
+            </View>
           )}
         </View>
       </Card.Content>
@@ -138,48 +125,49 @@ export function OverviewCard({ summary, comparison }: OverviewCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: 0,
+    overflow: 'hidden',
   },
   content: {
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
+    padding: 20,
+    gap: 16,
   },
-  row: {
+  summaryGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.md,
-    gap: spacing.sm,
+    gap: 12,
   },
-  item: {
-    alignItems: 'center',
+  summaryItem: {
     flex: 1,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
-    borderRadius: 12,
-  },
-  incomeItem: {
-    // 收入卡片样式
-  },
-  expenseItem: {
-    // 右侧项
+    padding: 16,
+    borderRadius: 24,
+    justifyContent: 'center',
   },
   balanceItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    padding: 20,
+    borderRadius: 24,
   },
   label: {
-    marginBottom: 6,
-    fontSize: 12,
-    opacity: 0.7,
+    fontSize: 11,
+    marginBottom: 4,
+    opacity: 0.8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   amount: {
-    fontWeight: '600',
-    marginBottom: 2,
-    fontSize: 20,
+    fontSize: 18,
+  },
+  balanceAmount: {
+    fontSize: 26,
+  },
+  balanceComparison: {
+    alignItems: 'flex-end',
   },
   changeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: spacing.xs,
+    marginTop: 4,
   },
 });
 

@@ -7,6 +7,7 @@ import { useStats } from '../hooks/useStats';
 import { DateRangeSelector } from '../components/stats/DateRangeSelector';
 import { OverviewCard } from '../components/stats/OverviewCard';
 import { TrendChart } from '../components/stats/TrendChart';
+import { WeeklyChart } from '../components/stats/WeeklyChart';
 import { CategoryPieChart } from '../components/stats/CategoryPieChart';
 import { CategoryRanking } from '../components/stats/CategoryRanking';
 import spacing from '../theme/spacing';
@@ -85,7 +86,10 @@ export function StatsScreen() {
           <OverviewCard summary={summary} comparison={comparison} />
           
           {dailyStats.length > 0 && (
-            <TrendChart dailyStats={dailyStats} />
+            <>
+              <TrendChart dailyStats={dailyStats} />
+              <WeeklyChart dailyStats={dailyStats} />
+            </>
           )}
 
           {expenseCategories.length > 0 && (

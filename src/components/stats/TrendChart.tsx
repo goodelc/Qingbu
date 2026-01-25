@@ -82,9 +82,14 @@ export function TrendChart({ dailyStats }: TrendChartProps) {
     >
       <Card.Content style={{ padding: 16 }}>
         <View style={styles.headerRow}>
-          <Text variant="titleMedium" style={[styles.title, { color: theme.colors.onSurface, fontWeight: '800' }]}>
-            收支趋势
-          </Text>
+          <View>
+            <Text variant="titleMedium" style={[styles.title, { color: theme.colors.onSurface, fontWeight: '800' }]}>
+              收支趋势
+            </Text>
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, opacity: 0.5, fontWeight: '600' }}>
+              最近 {sampledStats.length} 次记录
+            </Text>
+          </View>
           <View style={[styles.typeToggle, { backgroundColor: theme.colors.surfaceVariant || '#F1F3F4' }]}>
             <TouchableOpacity 
               onPress={() => setChartType('expense')} 
@@ -93,10 +98,10 @@ export function TrendChart({ dailyStats }: TrendChartProps) {
                 chartType === 'expense' && { 
                   backgroundColor: '#FFFFFF',
                   shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 1 },
+                  shadowOffset: { width: 0, height: 2 },
                   shadowOpacity: 0.1,
-                  shadowRadius: 2,
-                  elevation: 1,
+                  shadowRadius: 4,
+                  elevation: 2,
                 }
               ]}
             >
@@ -109,10 +114,10 @@ export function TrendChart({ dailyStats }: TrendChartProps) {
                 chartType === 'income' && { 
                   backgroundColor: '#FFFFFF',
                   shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 1 },
+                  shadowOffset: { width: 0, height: 2 },
                   shadowOpacity: 0.1,
-                  shadowRadius: 2,
-                  elevation: 1,
+                  shadowRadius: 4,
+                  elevation: 2,
                 }
               ]}
             >
@@ -125,24 +130,29 @@ export function TrendChart({ dailyStats }: TrendChartProps) {
           <View style={styles.barsContainer}>
             {sampledStats.map((stat, index) => {
               const val = chartType === 'income' ? stat.income : stat.expense;
-              const h = maxValue > 0 ? (val / maxValue) * 140 : 0;
+              const h = maxValue > 0 ? (val / maxValue) * 160 : 0;
               const barColor = chartType === 'income' ? PRIMARY_COLOR : ERROR_COLOR;
+              const isSelected = index === sampledStats.length - 1; // Default highlight last one
               
               return (
                 <View key={index} style={styles.barWrapper}>
+                  {val > 0 && (
+                    <Text style={[styles.barValueText, { color: barColor, opacity: isSelected ? 1 : 0.4 }]}>
+                      {val > 1000 ? `${(val/1000).toFixed(1)}k` : val.toFixed(0)}
+                    </Text>
+                  )}
                   <View 
                     style={[
                       styles.barItem, 
                       { 
                         height: Math.max(h, 4), 
-                        backgroundColor: barColor, 
-                        width: Math.max(barWidth, 6),
-                        borderTopLeftRadius: 4,
-                        borderTopRightRadius: 4,
+                        backgroundColor: isSelected ? barColor : barColor + '40', 
+                        width: Math.max(barWidth, 12),
+                        borderRadius: 6,
                       }
                     ]} 
                   />
-                  <Text style={[styles.xAxisText, { color: theme.colors.onSurfaceVariant || '#86868B' }]}>
+                  <Text style={[styles.xAxisText, { color: theme.colors.onSurfaceVariant, fontWeight: isSelected ? '800' : '500', opacity: isSelected ? 1 : 0.5 }]}>
                     {new Date(stat.date).getDate()}
                   </Text>
                 </View>
@@ -162,11 +172,12 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
+    alignItems: 'flex-start',
+    marginBottom: 24,
   },
   title: {
     fontSize: 18,
+    marginBottom: 2,
   },
   typeToggle: {
     flexDirection: 'row',
@@ -183,29 +194,32 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   chartArea: {
-    height: 256, // 参考项目的 h-64 (256px)
+    height: 220,
     justifyContent: 'flex-end',
+    paddingTop: 20,
   },
   barsContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
-    height: 240,
-    paddingHorizontal: 0,
+    height: 200,
   },
   barWrapper: {
     alignItems: 'center',
     justifyContent: 'flex-end',
     flex: 1,
-    gap: 8,
+    gap: 6,
   },
   barItem: {
     minHeight: 4,
   },
+  barValueText: {
+    fontSize: 9,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
   xAxisText: {
     fontSize: 10,
-    fontWeight: '500',
-    opacity: 0.6,
   },
   emptyText: {
     opacity: 0.5,

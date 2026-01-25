@@ -113,91 +113,106 @@ export function DateRangeSelector({
           styles.container,
           {
             backgroundColor: theme.colors.surface,
-            borderBottomColor: theme.colors.outline,
+            borderBottomColor: theme.colors.outline + '15',
           },
         ]}
       >
-        <View style={styles.rangeTypeContainer}>
-          <SegmentedButtons
-            value={rangeType}
-            onValueChange={(value) => setRangeType(value as DateRangeType)}
-            buttons={[
-              { value: 'month', label: '按月' },
-              { value: 'year', label: '按年' },
-            ]}
-            style={styles.segmentedButtons}
-          />
-        </View>
-        {rangeType === 'month' && (
-          <View style={styles.monthNavigator}>
-            <IconButton
-              icon="chevron-left"
-              size={24}
-              onPress={handlePreviousMonth}
-              iconColor={theme.colors.onSurface}
-            />
+        <View style={styles.topRow}>
+          <View style={[styles.typeToggle, { backgroundColor: theme.colors.surfaceVariant || '#F1F3F4' }]}>
+            <TouchableOpacity 
+              onPress={() => setRangeType('month')} 
+              style={[
+                styles.toggleBtn, 
+                rangeType === 'month' && { 
+                  backgroundColor: '#FFFFFF',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 2,
+                  elevation: 1,
+                }
+              ]}
+            >
+              <Text style={[styles.toggleText, { color: rangeType === 'month' ? theme.colors.primary : theme.colors.onSurfaceVariant }]}>按月</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => setRangeType('year')} 
+              style={[
+                styles.toggleBtn, 
+                rangeType === 'year' && { 
+                  backgroundColor: '#FFFFFF',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 2,
+                  elevation: 1,
+                }
+              ]}
+            >
+              <Text style={[styles.toggleText, { color: rangeType === 'year' ? theme.colors.primary : theme.colors.onSurfaceVariant }]}>按年</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.rightActions}>
+            {rangeType === 'month' && !isCurrentMonth() && (
+              <TouchableOpacity
+                onPress={handleTodayPress}
+                style={[styles.todayButton, { backgroundColor: theme.colors.surfaceVariant || '#F1F3F4' }]}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.todayButtonText}>今天</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
-              style={styles.monthContainer}
               onPress={handleMonthPress}
+              style={[styles.calendarButton, { backgroundColor: theme.colors.surfaceVariant || '#F1F3F4' }]}
               activeOpacity={0.7}
             >
-              <Text
-                variant="titleMedium"
-                style={[styles.monthText, { color: theme.colors.onSurface }]}
-              >
-                {year}年 {monthNames[month - 1]}
-              </Text>
+              <Text style={styles.calendarIcon}>📅</Text>
             </TouchableOpacity>
-            <IconButton
-              icon="chevron-right"
-              size={24}
-              onPress={handleNextMonth}
-              iconColor={theme.colors.onSurface}
-            />
-            {!isCurrentMonth() && (
-              <IconButton
-                icon="calendar-today"
-                size={20}
-                onPress={handleTodayPress}
-                iconColor={theme.colors.primary}
-                style={styles.todayButton}
-              />
-            )}
           </View>
-        )}
-        {rangeType === 'year' && (
-          <View style={styles.yearContainer}>
-            <IconButton
-              icon="chevron-left"
-              size={24}
-              onPress={() => onDateChange(year - 1, month)}
-              iconColor={theme.colors.onSurface}
-            />
+        </View>
+
+        <View style={styles.navigatorRow}>
+          <IconButton
+            icon="chevron-left"
+            size={22}
+            onPress={rangeType === 'month' ? handlePreviousMonth : () => onDateChange(year - 1, month)}
+            iconColor={theme.colors.onSurface}
+            style={styles.navButton}
+          />
+          <TouchableOpacity
+            style={styles.dateDisplay}
+            onPress={handleMonthPress}
+            activeOpacity={0.7}
+          >
             <Text
               variant="titleMedium"
-              style={[styles.yearText, { color: theme.colors.onSurface }]}
+              style={[styles.dateText, { color: theme.colors.onSurface }]}
             >
-              {year}年
+              {rangeType === 'month' ? `${year}年 ${monthNames[month - 1]}` : `${year}年`}
             </Text>
-            <IconButton
-              icon="chevron-right"
-              size={24}
-              onPress={() => {
-                const currentYear = new Date().getFullYear();
-                if (year < currentYear) {
-                  onDateChange(year + 1, month);
-                }
-              }}
-              iconColor={theme.colors.onSurface}
-            />
-          </View>
-        )}
+          </TouchableOpacity>
+          <IconButton
+            icon="chevron-right"
+            size={22}
+            onPress={rangeType === 'month' ? handleNextMonth : () => {
+              const currentYear = new Date().getFullYear();
+              if (year < currentYear) onDateChange(year + 1, month);
+            }}
+            iconColor={theme.colors.onSurface}
+            style={styles.navButton}
+          />
+        </View>
       </View>
 
       {Platform.OS === 'ios' && showPicker && (
         <Portal>
-          <Dialog visible={showPicker} onDismiss={() => setShowPicker(false)}>
-            <Dialog.Title>选择年月</Dialog.Title>
+          <Dialog 
+            visible={showPicker} 
+            onDismiss={() => setShowPicker(false)}
+            style={{ backgroundColor: theme.colors.surface, borderRadius: 28 }}
+          >
+            <Dialog.Title style={{ fontWeight: '800', fontSize: 20 }}>选择时间</Dialog.Title>
             <Dialog.Content>
               <DateTimePicker
                 value={pickerDate}
@@ -209,8 +224,19 @@ export function DateRangeSelector({
               />
             </Dialog.Content>
             <Dialog.Actions>
-              <Button onPress={() => setShowPicker(false)}>取消</Button>
-              <Button onPress={handleConfirm}>确定</Button>
+              <Button 
+                onPress={() => setShowPicker(false)}
+                textColor={theme.colors.onSurfaceVariant}
+              >
+                取消
+              </Button>
+              <Button 
+                onPress={handleConfirm}
+                mode="contained"
+                style={{ borderRadius: 12 }}
+              >
+                确定
+              </Button>
             </Dialog.Actions>
           </Dialog>
         </Portal>
@@ -231,49 +257,73 @@ export function DateRangeSelector({
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 6,
+    paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  rangeTypeContainer: {
+  topRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 16,
-    paddingBottom: 6,
+    marginBottom: 12,
   },
-  segmentedButtons: {
-    marginVertical: 0,
+  typeToggle: {
+    flexDirection: 'row',
+    padding: 3,
+    borderRadius: 16,
   },
-  monthNavigator: {
+  toggleBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  toggleText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  rightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  todayButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  todayButtonText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#4DB6AC',
+  },
+  calendarButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  calendarIcon: {
+    fontSize: 16,
+  },
+  navigatorRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 4,
+    paddingHorizontal: 8,
   },
-  monthContainer: {
+  navButton: {
+    margin: 0,
+  },
+  dateDisplay: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  monthText: {
-    fontWeight: '500',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    fontSize: 15,
-  },
-  todayButton: {
-    marginLeft: -4,
-  },
-  yearContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-  },
-  yearText: {
-    fontWeight: '500',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 15,
+  dateText: {
+    fontWeight: '800',
+    fontSize: 18,
+    letterSpacing: 0.5,
   },
 });
 
