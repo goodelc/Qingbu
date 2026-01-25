@@ -12,7 +12,7 @@ import {
   Dialog,
 } from 'react-native-paper';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { DatePickerModal } from 'react-native-paper-dates';
 import { useRecords } from '../hooks/useRecords';
 import { databaseService } from '../services/DatabaseService';
 import {
@@ -185,14 +185,15 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
     }
   };
 
-  const handleDateChange = (event: any, selectedDate?: Date) => {
-    if (Platform.OS === 'android') {
+  const onConfirmDate = React.useCallback(
+    (params: any) => {
       setShowDatePicker(false);
-    }
-    if (selectedDate) {
-      setDate(selectedDate);
-    }
-  };
+      if (params.date) {
+        setDate(params.date);
+      }
+    },
+    [setShowDatePicker, setDate]
+  );
 
   // 日期快捷选择
   const setQuickDate = (daysAgo: number) => {
@@ -438,14 +439,16 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {showDatePicker && (
-        <DateTimePicker
-          value={date}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={handleDateChange}
-        />
-      )}
+      <DatePickerModal
+        locale="en"
+        mode="single"
+        visible={showDatePicker}
+        onDismiss={() => setShowDatePicker(false)}
+        date={date}
+        onConfirm={onConfirmDate}
+        label="选择日期"
+        animationType="slide"
+      />
 
       <Portal>
         <Dialog

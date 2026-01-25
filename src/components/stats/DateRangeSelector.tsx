@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Platform, TouchableOpacity } from 'react-native';
-import { Text, IconButton, useTheme, Portal, Dialog, Button, SegmentedButtons } from 'react-native-paper';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { Text, IconButton, useTheme } from 'react-native-paper';
+import { DatePickerModal } from 'react-native-paper-dates';
 import { getMonthRange } from '../../utils/formatters';
 
 type DateRangeType = 'month' | 'year' | 'custom';
@@ -33,23 +33,15 @@ export function DateRangeSelector({
     setShowPicker(true);
   };
 
-  const handleDateChange = (event: any, selectedDate?: Date) => {
-    if (Platform.OS === 'android') {
+  const onConfirm = React.useCallback(
+    (params: any) => {
       setShowPicker(false);
-    }
-    if (selectedDate) {
-      setPickerDate(selectedDate);
-      if (Platform.OS === 'ios') {
-        return;
+      if (params.date) {
+        onDateChange(params.date.getFullYear(), params.date.getMonth() + 1);
       }
-      onDateChange(selectedDate.getFullYear(), selectedDate.getMonth() + 1);
-    }
-  };
-
-  const handleConfirm = () => {
-    setShowPicker(false);
-    onDateChange(pickerDate.getFullYear(), pickerDate.getMonth() + 1);
-  };
+    },
+    [onDateChange]
+  );
 
   const handlePreviousMonth = () => {
     let newYear = year;
@@ -205,52 +197,16 @@ export function DateRangeSelector({
         </View>
       </View>
 
-      {Platform.OS === 'ios' && showPicker && (
-        <Portal>
-          <Dialog 
-            visible={showPicker} 
-            onDismiss={() => setShowPicker(false)}
-            style={{ backgroundColor: theme.colors.surface, borderRadius: 28 }}
-          >
-            <Dialog.Title style={{ fontWeight: '800', fontSize: 20 }}>选择时间</Dialog.Title>
-            <Dialog.Content>
-              <DateTimePicker
-                value={pickerDate}
-                mode="date"
-                display="spinner"
-                onChange={handleDateChange}
-                locale="zh_CN"
-                maximumDate={new Date()}
-              />
-            </Dialog.Content>
-            <Dialog.Actions>
-              <Button 
-                onPress={() => setShowPicker(false)}
-                textColor={theme.colors.onSurfaceVariant}
-              >
-                取消
-              </Button>
-              <Button 
-                onPress={handleConfirm}
-                mode="contained"
-                style={{ borderRadius: 12 }}
-              >
-                确定
-              </Button>
-            </Dialog.Actions>
-          </Dialog>
-        </Portal>
-      )}
-
-      {Platform.OS === 'android' && showPicker && (
-        <DateTimePicker
-          value={pickerDate}
-          mode="date"
-          display="default"
-          onChange={handleDateChange}
-          maximumDate={new Date()}
-        />
-      )}
+      <DatePickerModal
+        locale="en"
+        mode="single"
+        visible={showPicker}
+        onDismiss={() => setShowPicker(false)}
+        date={pickerDate}
+        onConfirm={onConfirm}
+        label="选择时间"
+        animationType="slide"
+      />
     </>
   );
 }

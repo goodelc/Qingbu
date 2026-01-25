@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Provider as PaperProvider } from 'react-native-paper';
+import { en, registerTranslation } from 'react-native-paper-dates';
+registerTranslation('en', en);
 import { CustomLightTheme, CustomDarkTheme } from './src/theme/customTheme';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { useAppStore } from './src/store/useAppStore';
