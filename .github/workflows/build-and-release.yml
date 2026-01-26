@@ -214,38 +214,37 @@ jobs:
           echo "  File: qingbu.apk"
           echo "  Size: $APK_SIZE"
 
-      - name: Get version from CHANGELOG.md
+      - name: Get version from .github/CHANGELOG.md
         if: steps.check_skip.outputs.skip != 'true'
         id: get_version
         run: |
-          # 从 CHANGELOG.md 读取最新版本号（格式：## [x.y.z] 或 ## [x.y.z] - YYYY-MM-DD）
-          # 跳过 [Unreleased]，查找第一个已发布的版本
-          VERSION=$(grep -E "^## \[[0-9]+\.[0-9]+\.[0-9]+\]" CHANGELOG.md | head -1 | sed -E 's/^## \[([0-9]+\.[0-9]+\.[0-9]+)\].*/\1/' || echo "")
+          # 从 .github/CHANGELOG.md 读取版本号（格式：## version[x.y.z]）
+          VERSION=$(grep -E "^## version\[[0-9]+\.[0-9]+\.[0-9]+\]" .github/CHANGELOG.md | head -1 | sed -E 's/^## version\[([0-9]+\.[0-9]+\.[0-9]+)\]/\1/' || echo "")
           
-          # 如果 CHANGELOG.md 中没有版本号，尝试从 app.json 读取（向后兼容）
+          # 如果 .github/CHANGELOG.md 中没有版本号，尝试从 app.json 读取（向后兼容）
           if [ -z "$VERSION" ]; then
-            echo "⚠️ Warning: 未在 CHANGELOG.md 中找到版本号，从 app.json 读取"
+            echo "⚠️ Warning: 未在 .github/CHANGELOG.md 中找到版本号，从 app.json 读取"
             VERSION=$(node -p "require('./app.json').expo.version" 2>/dev/null || echo "")
           fi
           
           if [ -z "$VERSION" ]; then
             echo "❌ Error: 无法获取版本号"
-            echo "请确保 CHANGELOG.md 中包含版本号，格式：## [x.y.z]"
+            echo "请确保 .github/CHANGELOG.md 中包含版本号，格式：## version[x.y.z]"
             exit 1
           fi
           
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "✅ Version: $VERSION (from CHANGELOG.md)"
+          echo "✅ Version: $VERSION (from .github/CHANGELOG.md)"
 
       - name: Extract changelog for version
         if: steps.check_skip.outputs.skip != 'true'
         id: release_notes
         run: |
           VERSION="${{ steps.get_version.outputs.version }}"
-          CHANGELOG_FILE="CHANGELOG.md"
+          CHANGELOG_FILE=".github/CHANGELOG.md"
           
           if [ ! -f "$CHANGELOG_FILE" ]; then
-            echo "⚠️ Warning: CHANGELOG.md not found, using commit message"
+            echo "⚠️ Warning: .github/CHANGELOG.md not found, using commit message"
             echo "release_notes<<EOF" >> $GITHUB_OUTPUT
             echo "### 📝 变更" >> $GITHUB_OUTPUT
             echo "" >> $GITHUB_OUTPUT
@@ -255,41 +254,39 @@ jobs:
           fi
           
           # 提取对应版本的变更说明
-          # 查找从 "## [版本号]" 到下一个 "## [" 之间的内容
-          awk -v version="$VERSION" '
-            BEGIN { found=0; in_section=0; output="" }
-            /^## \[Unreleased\]/ { 
-              # 如果查找的是 Unreleased，直接使用
-              if (version == "Unreleased") {
-                in_section=1
-                found=1
-                next
+          # 从 "## 更新说明" 到 "## version[]" 之间的内容
+          node -e "
+            const fs = require('fs');
+            const changelog = fs.readFileSync('$CHANGELOG_FILE', 'utf-8');
+            
+            const lines = changelog.split('\n');
+            let inSection = false;
+            let output = [];
+            
+            for (let i = 0; i < lines.length; i++) {
+              const line = lines[i];
+              
+              // 匹配 "## 更新说明" 开始
+              if (/^## 更新说明/.test(line)) {
+                inSection = true;
+                continue;
+              }
+              
+              // 如果遇到 "## version[]" 行，停止
+              if (inSection && /^## version\[/.test(line)) {
+                break;
+              }
+              
+              // 收集内容
+              if (inSection && line.trim() !== '') {
+                output.push(line);
               }
             }
-            /^## \[' version '\]/ { 
-              in_section=1
-              found=1
-              next
+            
+            if (output.length > 0) {
+              console.log(output.join('\n'));
             }
-            /^## \[/ && in_section==1 && found==1 { 
-              # 遇到下一个版本标题，停止
-              in_section=0
-              exit
-            }
-            in_section==1 { 
-              if (found==1) {
-                # 跳过版本标题行和日期行（格式：- YYYY-MM-DD）
-                if (!/^## \[/ && !/^- [0-9]{4}-[0-9]{2}-[0-9]{2}$/ && !/^$/) {
-                  output=output $0 "\n"
-                }
-              }
-            }
-            END {
-              if (found==1 && output!="") {
-                print output
-              }
-            }
-          ' "$CHANGELOG_FILE" > changelog_section.txt
+          " > changelog_section.txt
           
           # 如果找到了变更说明，使用它
           if [ -s changelog_section.txt ]; then
@@ -297,9 +294,9 @@ jobs:
             echo "release_notes<<EOF" >> $GITHUB_OUTPUT
             echo "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
-            echo "✅ Extracted changelog for version $VERSION from CHANGELOG.md"
+            echo "✅ Extracted changelog for version $VERSION from .github/CHANGELOG.md"
           else
-            echo "⚠️ Warning: No changelog entry found for version $VERSION in CHANGELOG.md"
+            echo "⚠️ Warning: No changelog entry found in .github/CHANGELOG.md"
             echo "Using commit message as fallback"
             echo "release_notes<<EOF" >> $GITHUB_OUTPUT
             echo "### 📝 变更" >> $GITHUB_OUTPUT
