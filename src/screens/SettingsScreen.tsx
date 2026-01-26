@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Platform, Linking, TouchableOpacity } from 'react-native';
-import { List, Switch, Text, useTheme, Divider, Button, Dialog, Portal, RadioButton } from 'react-native-paper';
+import { List, Switch, Text, useTheme, Divider, Button, Dialog, Portal, RadioButton, ProgressBar } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import Constants from 'expo-constants';
 import { useAppStore } from '../store/useAppStore';
 import { databaseService } from '../services/DatabaseService';
+import { updateService, UpdateInfo } from '../services/UpdateService';
 import { checkAndRequestFilePermissions } from '../utils/permissions';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -29,6 +31,74 @@ export function SettingsScreen() {
   const [aboutDialogVisible, setAboutDialogVisible] = useState(false);
   const [exportRange, setExportRange] = useState<ExportRange>('all');
   const [isExporting, setIsExporting] = useState(false);
+
+  // 更新相关状态
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  const [updateDialogVisible, setUpdateDialogVisible] = useState(false);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const currentVersion = `v${Constants.expoConfig?.version || '1.0.0'}`;
+
+  const checkUpdate = async (manual = true) => {
+    if (isCheckingUpdate) {
+      console.log('[SettingsScreen] 检查更新已在进行中，跳过');
+      return;
+    }
+    console.log('[SettingsScreen] 开始检查更新，手动触发:', manual);
+    setIsCheckingUpdate(true);
+    try {
+      console.log('[SettingsScreen] 调用updateService.checkUpdate()...');
+      const info = await updateService.checkUpdate();
+      console.log('[SettingsScreen] 检查更新完成，结果:', info ? `发现新版本 ${info.version}` : '已是最新版本');
+      
+      if (info) {
+        setUpdateInfo(info);
+        setUpdateDialogVisible(true);
+        console.log('[SettingsScreen] 显示更新对话框');
+      } else if (manual) {
+        console.log('[SettingsScreen] 显示"已是最新版本"提示');
+        Alert.alert('提示', '当前已是最新版本');
+      }
+    } catch (error) {
+      console.error('[SettingsScreen] 检查更新异常:', error);
+      if (error instanceof Error) {
+        console.error('[SettingsScreen] 错误详情:', error.message, error.stack);
+      }
+      if (manual) {
+        // 检查是否是速率限制错误
+        if (error instanceof Error && (error as any).isRateLimit) {
+          console.log('[SettingsScreen] 检测到速率限制错误');
+          Alert.alert(
+            '请求过于频繁',
+            'GitHub API 请求频率过高，请稍后再试。\n\n建议：\n• 等待几分钟后重试\n• 或联系开发者配置 API 认证以提高速率限制'
+          );
+        } else {
+          const errorMsg = error instanceof Error ? error.message : '检查更新失败，请重试';
+          console.log('[SettingsScreen] 显示错误提示:', errorMsg);
+          Alert.alert('错误', errorMsg);
+        }
+      }
+    } finally {
+      console.log('[SettingsScreen] 检查更新流程结束');
+      setIsCheckingUpdate(false);
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (!updateInfo || isDownloading) return;
+    setIsDownloading(true);
+    setDownloadProgress(0);
+    try {
+      await updateService.downloadAndInstall(updateInfo.downloadUrl, (progress) => {
+        setDownloadProgress(progress);
+      });
+    } catch (error) {
+      Alert.alert('错误', '下载失败，请稍后重试');
+      setIsDownloading(false);
+    }
+  };
 
   // 检查并请求文件系统权限（Android）
   const checkAndRequestPermissions = async (): Promise<boolean> => {
@@ -116,9 +186,9 @@ export function SettingsScreen() {
       const fileName = `轻簿记账_${rangeText}_${timestamp}.csv`;
 
       // 选择可用的目录（优先使用 documentDirectory，如果不可用则使用 cacheDirectory）
-      let baseDirectory = FileSystem.documentDirectory;
+      let baseDirectory = (FileSystem as any).documentDirectory;
       if (!baseDirectory) {
-        baseDirectory = FileSystem.cacheDirectory;
+        baseDirectory = (FileSystem as any).cacheDirectory;
       }
       
       if (!baseDirectory) {
@@ -145,14 +215,14 @@ export function SettingsScreen() {
       console.log('开始写入文件...');
       try {
         await FileSystem.writeAsStringAsync(fileUri, csvWithBOM, {
-          encoding: FileSystem.EncodingType.UTF8,
+          encoding: (FileSystem as any).EncodingType.UTF8,
         });
         console.log('文件写入成功（带 BOM）');
       } catch (writeError) {
         // 如果带 BOM 写入失败，尝试不带 BOM
         console.warn('带 BOM 写入失败，尝试不带 BOM:', writeError);
         await FileSystem.writeAsStringAsync(fileUri, csvContent, {
-          encoding: FileSystem.EncodingType.UTF8,
+          encoding: (FileSystem as any).EncodingType.UTF8,
         });
         console.log('文件写入成功（不带 BOM）');
       }
@@ -264,6 +334,12 @@ export function SettingsScreen() {
     { label: '主题设置', emoji: '🎨', action: toggleTheme, right: <Switch value={isDark} onValueChange={toggleTheme} /> },
     { label: '固定收支', emoji: '🔄', action: () => navigation.navigate('RecurringItems') },
     { label: '数据导出', emoji: '📊', action: () => setExportDialogVisible(true) },
+    { 
+      label: '检查更新', 
+      emoji: '🚀', 
+      action: () => checkUpdate(true), 
+      right: <Text style={{ color: theme.colors.onSurfaceVariant, opacity: 0.5, fontSize: 13 }}>{currentVersion}</Text> 
+    },
     { label: '关于轻簿', emoji: 'ℹ️', action: () => setAboutDialogVisible(true) },
   ];
 
@@ -352,6 +428,69 @@ export function SettingsScreen() {
                 style={{ borderRadius: 12 }}
               >
                 开始导出
+              </Button>
+            </Dialog.Actions>
+          </Dialog>
+        </Portal>
+
+        <Portal>
+          <Dialog
+            visible={isCheckingUpdate}
+            dismissable={false}
+            style={{ backgroundColor: theme.colors.surface, borderRadius: 28 }}
+          >
+            <Dialog.Title style={{ fontWeight: '800' }}>检查更新中</Dialog.Title>
+            <Dialog.Content>
+              <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+                <ProgressBar indeterminate color={theme.colors.primary} style={{ width: '100%', height: 4 }} />
+                <Text variant="bodyMedium" style={{ marginTop: 16, opacity: 0.7 }}>
+                  正在检查新版本...
+                </Text>
+              </View>
+            </Dialog.Content>
+          </Dialog>
+
+          <Dialog
+            visible={updateDialogVisible}
+            onDismiss={() => !isDownloading && setUpdateDialogVisible(false)}
+            style={{ backgroundColor: theme.colors.surface, borderRadius: 28 }}
+          >
+            <Dialog.Title style={{ fontWeight: '800' }}>发现新版本 {updateInfo?.version}</Dialog.Title>
+            <Dialog.Content>
+              <ScrollView style={{ maxHeight: 200 }}>
+                <Text variant="bodyMedium" style={{ marginBottom: 16, opacity: 0.7, lineHeight: 22 }}>
+                  {updateInfo?.description || '暂无更新日志'}
+                </Text>
+              </ScrollView>
+              
+              {isDownloading && (
+                <View style={{ marginTop: 16 }}>
+                  <Text variant="bodySmall" style={{ marginBottom: 8, textAlign: 'right', fontWeight: '700' }}>
+                    {Math.round(downloadProgress * 100)}%
+                  </Text>
+                  <ProgressBar progress={downloadProgress} color={theme.colors.primary} style={{ height: 8, borderRadius: 4 }} />
+                  <Text variant="bodySmall" style={{ marginTop: 8, opacity: 0.5, textAlign: 'center' }}>
+                    正在下载更新包，请勿关闭应用...
+                  </Text>
+                </View>
+              )}
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button
+                onPress={() => setUpdateDialogVisible(false)}
+                disabled={isDownloading}
+                textColor={theme.colors.onSurfaceVariant}
+              >
+                稍后再说
+              </Button>
+              <Button
+                onPress={handleUpdate}
+                loading={isDownloading}
+                disabled={isDownloading}
+                mode="contained"
+                style={{ borderRadius: 12 }}
+              >
+                立即更新
               </Button>
             </Dialog.Actions>
           </Dialog>

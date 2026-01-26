@@ -14,6 +14,7 @@ import { checkAndRequestFilePermissions } from './src/utils/permissions';
 //   markCheckedToday,
 // } from './src/services/RecurringRecordService';
 import { View, ActivityIndicator, StyleSheet, Alert } from 'react-native';
+import { updateService } from './src/services/UpdateService';
 
 export default function App() {
   const { theme } = useAppStore();
@@ -35,6 +36,15 @@ export default function App() {
           }
         }).catch((error) => {
           console.error('权限请求出错:', error);
+        });
+
+        // 检查更新 (静默检查)
+        updateService.checkUpdate().then((info) => {
+          if (info) {
+            console.log('发现新版本:', info.version);
+            // 这里我们不直接弹出，而是让用户在设置页面看到，或者在此弹出简易提醒
+            // 考虑到体验，启动时仅做日志记录，或你可以选择弹出 Alert
+          }
         });
 
         // 检查并创建固定收支记录
