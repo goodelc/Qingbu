@@ -88,12 +88,53 @@ jobs:
         if: steps.check_skip.outputs.skip != 'true'
         run: |
           echo "Generating native Android project..."
-          # 只在 android 目录不存在或 package.json 变化时重新生成
-          if [ ! -d "android" ] || [ "package.json" -nt "android" ] || [ "app.json" -nt "android" ]; then
-            npx expo prebuild --platform android --clean
+          
+          # 检查 android 目录和 gradlew 文件是否存在
+          NEED_PREBUILD=false
+          
+          if [ ! -d "android" ]; then
+            echo "📦 android directory not found, need prebuild"
+            NEED_PREBUILD=true
+          elif [ ! -f "android/gradlew" ]; then
+            echo "⚠️ gradlew not found, need prebuild"
+            NEED_PREBUILD=true
+          elif [ "package.json" -nt "android" ] || [ "app.json" -nt "android" ]; then
+            echo "📦 package.json or app.json changed, need prebuild"
+            NEED_PREBUILD=true
           else
-            echo "✅ Android project already exists, skipping prebuild"
+            echo "✅ Android project exists and appears up to date"
           fi
+          
+          if [ "$NEED_PREBUILD" = "true" ]; then
+            echo "📦 Running expo prebuild..."
+            npx expo prebuild --platform android --clean
+            
+            # 验证 prebuild 结果
+            if [ ! -d "android" ]; then
+              echo "❌ Error: android directory not created after prebuild"
+              exit 1
+            fi
+            
+            if [ ! -f "android/gradlew" ]; then
+              echo "❌ Error: gradlew not found after prebuild"
+              echo "Listing android directory contents:"
+              ls -la android/ || true
+              echo ""
+              echo "Checking for gradle wrapper:"
+              find android -name "gradlew" -type f 2>/dev/null || echo "gradlew not found"
+              exit 1
+            fi
+          fi
+          
+          # 最终验证
+          if [ ! -f "android/gradlew" ]; then
+            echo "❌ Error: gradlew still not found after all checks"
+            exit 1
+          fi
+          
+          echo "✅ Android project ready"
+          echo "  gradlew path: android/gradlew"
+          echo "  gradlew exists: $(test -f android/gradlew && echo 'yes' || echo 'no')"
 
       - name: Setup Android Keystore
         if: steps.check_skip.outputs.skip != 'true'
@@ -135,9 +176,22 @@ jobs:
       - name: Build APK
         if: steps.check_skip.outputs.skip != 'true'
         run: |
+          # 验证 gradlew 存在
+          if [ ! -f "android/gradlew" ]; then
+            echo "❌ Error: gradlew not found"
+            exit 1
+          fi
+          
           cd android
           echo "Building Release APK..."
           chmod +x gradlew
+          
+          # 验证 gradlew 可执行
+          if [ ! -x "gradlew" ]; then
+            echo "❌ Error: gradlew is not executable"
+            exit 1
+          fi
+          
           # 使用构建缓存和并行构建加速
           ./gradlew assembleRelease --no-daemon --build-cache --parallel
           
