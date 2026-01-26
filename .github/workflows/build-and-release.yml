@@ -214,105 +214,14 @@ jobs:
           echo "  File: qingbu.apk"
           echo "  Size: $APK_SIZE"
 
-      - name: Get version from .github/CHANGELOG.md
-        if: steps.check_skip.outputs.skip != 'true'
-        id: get_version
-        run: |
-          # 从 .github/CHANGELOG.md 读取版本号（格式：## version[x.y.z]）
-          VERSION=$(grep -E "^## version\[[0-9]+\.[0-9]+\.[0-9]+\]" .github/CHANGELOG.md | head -1 | sed -E 's/^## version\[([0-9]+\.[0-9]+\.[0-9]+)\]/\1/' || echo "")
-          
-          # 如果 .github/CHANGELOG.md 中没有版本号，尝试从 app.json 读取（向后兼容）
-          if [ -z "$VERSION" ]; then
-            echo "⚠️ Warning: 未在 .github/CHANGELOG.md 中找到版本号，从 app.json 读取"
-            VERSION=$(node -p "require('./app.json').expo.version" 2>/dev/null || echo "")
-          fi
-          
-          if [ -z "$VERSION" ]; then
-            echo "❌ Error: 无法获取版本号"
-            echo "请确保 .github/CHANGELOG.md 中包含版本号，格式：## version[x.y.z]"
-            exit 1
-          fi
-          
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "✅ Version: $VERSION (from .github/CHANGELOG.md)"
-
-      - name: Extract changelog for version
-        if: steps.check_skip.outputs.skip != 'true'
-        id: release_notes
-        run: |
-          VERSION="${{ steps.get_version.outputs.version }}"
-          CHANGELOG_FILE=".github/CHANGELOG.md"
-          
-          if [ ! -f "$CHANGELOG_FILE" ]; then
-            echo "⚠️ Warning: .github/CHANGELOG.md not found, using commit message"
-            echo "release_notes<<EOF" >> $GITHUB_OUTPUT
-            echo "### 📝 变更" >> $GITHUB_OUTPUT
-            echo "" >> $GITHUB_OUTPUT
-            echo "${{ github.event.head_commit.message }}" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          
-          # 提取对应版本的变更说明
-          # 从 "## 更新说明" 到 "## version[]" 之间的内容
-          node -e "
-            const fs = require('fs');
-            const changelog = fs.readFileSync('$CHANGELOG_FILE', 'utf-8');
-            
-            const lines = changelog.split('\n');
-            let inSection = false;
-            let output = [];
-            
-            for (let i = 0; i < lines.length; i++) {
-              const line = lines[i];
-              
-              // 匹配 "## 更新说明" 开始
-              if (/^## 更新说明/.test(line)) {
-                inSection = true;
-                continue;
-              }
-              
-              // 如果遇到 "## version[]" 行，停止
-              if (inSection && /^## version\[/.test(line)) {
-                break;
-              }
-              
-              // 收集内容
-              if (inSection && line.trim() !== '') {
-                output.push(line);
-              }
-            }
-            
-            if (output.length > 0) {
-              console.log(output.join('\n'));
-            }
-          " > changelog_section.txt
-          
-          # 如果找到了变更说明，使用它
-          if [ -s changelog_section.txt ]; then
-            CHANGELOG_CONTENT=$(cat changelog_section.txt)
-            echo "release_notes<<EOF" >> $GITHUB_OUTPUT
-            echo "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-            echo "✅ Extracted changelog for version $VERSION from .github/CHANGELOG.md"
-          else
-            echo "⚠️ Warning: No changelog entry found in .github/CHANGELOG.md"
-            echo "Using commit message as fallback"
-            echo "release_notes<<EOF" >> $GITHUB_OUTPUT
-            echo "### 📝 变更" >> $GITHUB_OUTPUT
-            echo "" >> $GITHUB_OUTPUT
-            echo "${{ github.event.head_commit.message }}" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-          fi
-
       - name: Create GitHub Release
         if: steps.check_skip.outputs.skip != 'true'
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ steps.get_version.outputs.version }}-${{ github.sha }}
-          name: Release v${{ steps.get_version.outputs.version }}
+          tag_name: v1.2.0-${{ github.sha }}
+          name: Release v1.2.0
           body: |
-            ## 轻簿 v${{ steps.get_version.outputs.version }}
+            ## 轻簿 v1.2.0
             
             ### 构建信息
             - Commit: `${{ github.sha }}`
@@ -324,7 +233,7 @@ jobs:
             
             ### 变更说明
             
-            ${{ steps.release_notes.outputs.release_notes }}
+            更新
             
             ---
             
@@ -342,8 +251,8 @@ jobs:
           echo "✅ Release created successfully!"
           echo ""
           echo "📱 Release Information:"
-          echo "  Version: v${{ steps.get_version.outputs.version }}"
-          echo "  Tag: v${{ steps.get_version.outputs.version }}-${{ github.sha }}"
+          echo "  Version: v1.2.0"
+          echo "  Tag: v1.2.0-${{ github.sha }}"
           echo "  APK: qingbu.apk"
           echo ""
           echo "🔗 View release: https://github.com/${{ github.repository }}/releases"
