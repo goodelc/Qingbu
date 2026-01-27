@@ -2,6 +2,7 @@ import { openDatabaseAsync, SQLiteDatabase } from 'expo-sqlite';
 import type { Record, MonthlySummary, CategoryStat, DailyStat, ComparisonData, RecurringItem, RecurringRecord } from '../types';
 import { getMonthRange } from '../utils/formatters';
 import { parseCategory } from '../utils/constants';
+import { logService } from './LogService';
 
 class DatabaseService {
   private db: SQLiteDatabase | null = null;
@@ -62,6 +63,11 @@ class DatabaseService {
       this.initialized = true;
     } catch (error) {
       console.error('Database initialization error:', error);
+      await logService.logError(
+        'DatabaseService',
+        '数据库初始化失败',
+        error instanceof Error ? error.stack || error.message : String(error)
+      );
       throw error;
     }
   }

@@ -14,6 +14,7 @@ import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList, MainTabParamList } from '../navigation/AppNavigator';
+import { logService } from '../services/LogService';
 
 type SettingsScreenNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'Settings'>,
@@ -50,6 +51,7 @@ export function SettingsScreen() {
     setIsCheckingUpdate(true);
     try {
       console.log('[SettingsScreen] 调用updateService.checkUpdate()...');
+      await logService.logInfo('SettingsScreen', '开始检查更新', `manual=${manual}`);
       const info = await updateService.checkUpdate();
       console.log('[SettingsScreen] 检查更新完成，结果:', info ? `发现新版本 ${info.version}` : '已是最新版本');
       
@@ -57,15 +59,22 @@ export function SettingsScreen() {
         setUpdateInfo(info);
         setUpdateDialogVisible(true);
         console.log('[SettingsScreen] 显示更新对话框');
+        await logService.logInfo('SettingsScreen', '发现新版本', info.version);
       } else if (manual) {
         console.log('[SettingsScreen] 显示"已是最新版本"提示');
         Alert.alert('提示', '当前已是最新版本');
+        await logService.logInfo('SettingsScreen', '当前已是最新版本');
       }
     } catch (error) {
       console.error('[SettingsScreen] 检查更新异常:', error);
       if (error instanceof Error) {
         console.error('[SettingsScreen] 错误详情:', error.message, error.stack);
       }
+      await logService.logError(
+        'SettingsScreen',
+        '检查更新失败',
+        error instanceof Error ? error.stack || error.message : String(error)
+      );
       if (manual) {
         // 检查是否是速率限制错误
         if (error instanceof Error && (error as any).isRateLimit) {
@@ -95,6 +104,11 @@ export function SettingsScreen() {
         setDownloadProgress(progress);
       });
     } catch (error) {
+      await logService.logError(
+        'SettingsScreen',
+        '下载更新失败',
+        error instanceof Error ? error.stack || error.message : String(error)
+      );
       Alert.alert('错误', '下载失败，请稍后重试');
       setIsDownloading(false);
     }
@@ -129,6 +143,11 @@ export function SettingsScreen() {
       return hasPermission;
     } catch (error) {
       console.error('权限检查失败:', error);
+      await logService.logError(
+        'SettingsScreen',
+        '文件权限检查失败',
+        error instanceof Error ? error.stack || error.message : String(error)
+      );
       return false;
     }
   };
@@ -289,6 +308,11 @@ export function SettingsScreen() {
       setExportDialogVisible(false);
     } catch (error) {
       console.error('导出失败:', error);
+      await logService.logError(
+        'SettingsScreen',
+        '导出数据失败',
+        error instanceof Error ? error.stack || error.message : String(error)
+      );
       const errorMessage = error instanceof Error ? error.message : String(error);
       
       // 提供更详细的错误信息和解决方案
@@ -340,6 +364,7 @@ export function SettingsScreen() {
       action: () => checkUpdate(true), 
       right: <Text style={{ color: theme.colors.onSurfaceVariant, opacity: 0.5, fontSize: 13 }}>{currentVersion}</Text> 
     },
+    { label: '查看日志', emoji: '📜', action: () => navigation.navigate('Logs') },
     { label: '关于轻簿', emoji: 'ℹ️', action: () => setAboutDialogVisible(true) },
   ];
 

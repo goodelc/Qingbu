@@ -15,6 +15,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { DatePickerModal } from 'react-native-paper-dates';
 import { useRecords } from '../hooks/useRecords';
 import { databaseService } from '../services/DatabaseService';
+import { logService } from '../services/LogService';
 import {
   EXPENSE_CATEGORIES,
   INCOME_CATEGORIES,
@@ -136,6 +137,11 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
       }
     } catch (error) {
       console.error('Failed to load record:', error);
+      await logService.logError(
+        'AddRecordScreen',
+        '加载记录失败',
+        error instanceof Error ? error.stack || error.message : String(error)
+      );
     }
   };
 
@@ -179,6 +185,16 @@ export function AddRecordScreen({ navigation, route }: AddRecordScreenProps) {
       }
     } catch (error) {
       console.error('Failed to save record:', error);
+      await logService.logError(
+        'AddRecordScreen',
+        '保存记录失败',
+        JSON.stringify({
+          error: error instanceof Error ? error.message : String(error),
+          amount,
+          type,
+          category: formatCategory(parentCategory, subcategory),
+        })
+      );
       setErrors({ submit: '保存失败，请重试' });
     } finally {
       setLoading(false);

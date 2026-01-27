@@ -13,12 +13,14 @@ import { StatsScreen } from '../screens/StatsScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { RecurringItemsScreen } from '../screens/RecurringItemsScreen';
 import { AddRecurringItemScreen } from '../screens/AddRecurringItemScreen';
+import { LogScreen } from '../screens/LogScreen';
 
 export type RootStackParamList = {
   MainTabs: undefined;
   AddRecord: { recordId?: number } | undefined;
   RecurringItems: undefined;
   AddRecurringItem: { itemId?: number } | undefined;
+  Logs: undefined;
 };
 
 export type MainTabParamList = {
@@ -158,6 +160,16 @@ export function AppNavigator() {
           component={AddRecurringItemScreen}
           options={{
             presentation: 'modal',
+            headerShown: false,
+            contentStyle: {
+              backgroundColor: paperTheme.colors.background,
+            },
+          }}
+        />
+        <Stack.Screen
+          name="Logs"
+          component={LogScreen}
+          options={{
             headerShown: false,
             contentStyle: {
               backgroundColor: paperTheme.colors.background,

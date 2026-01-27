@@ -2,6 +2,7 @@ import * as FileSystem from 'expo-file-system';
 import * as IntentLauncher from 'expo-intent-launcher';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import { logService } from './LogService';
 
 // 配置信息
 const GITHUB_OWNER = 'goodelc';
@@ -24,6 +25,11 @@ class UpdateService {
     try {
       const currentVersion = Constants.expoConfig?.version || '1.0.0';
       console.log('[UpdateService] 开始检查更新，当前版本:', currentVersion);
+      await logService.logInfo(
+        'UpdateService',
+        '开始检查更新',
+        `currentVersion=${currentVersion}`
+      );
       // 直接请求 GitHub API 获取版本信息
       const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
       console.log('[UpdateService] 请求URL:', apiUrl);
@@ -108,10 +114,16 @@ class UpdateService {
           pubDate: data.published_at,
         };
         console.log('[UpdateService] 发现新版本:', updateInfo.version, '下载URL:', updateInfo.downloadUrl);
+        await logService.logInfo(
+          'UpdateService',
+          `发现新版本 ${updateInfo.version}`,
+          `downloadUrl=${updateInfo.downloadUrl}`
+        );
         return updateInfo;
       }
 
       console.log('[UpdateService] 当前已是最新版本');
+      await logService.logInfo('UpdateService', '当前已是最新版本');
       return null;
     } catch (error) {
       console.error('[UpdateService] 检查更新失败:', error);
@@ -119,10 +131,20 @@ class UpdateService {
         console.error('[UpdateService] 错误详情:', error.message, error.stack);
         // 如果是速率限制错误，保留错误信息以便上层处理
         if ((error as any).isRateLimit) {
+          await logService.logWarn(
+            'UpdateService',
+            'GitHub API 速率限制',
+            (error as any).originalMessage || error.message
+          );
           // 重新抛出以便SettingsScreen可以显示特定错误
           throw error;
         }
       }
+      await logService.logError(
+        'UpdateService',
+        '检查更新失败',
+        error instanceof Error ? error.stack || error.message : String(error)
+      );
       return null;
     }
   }
@@ -136,6 +158,7 @@ class UpdateService {
   ): Promise<void> {
     if (Platform.OS !== 'android') {
       console.log('[UpdateService] 非Android平台，跳过下载安装');
+      await logService.logInfo('UpdateService', '非 Android 平台，跳过下载安装');
       return;
     }
 
@@ -171,6 +194,11 @@ class UpdateService {
         throw new Error('Download failed');
       }
       console.log('[UpdateService] 下载完成:', result.uri);
+      await logService.logInfo(
+        'UpdateService',
+        'APK 下载完成',
+        `uri=${result.uri}`
+      );
 
       // 2. 调起安装
       console.log('[UpdateService] 获取Content URI...');
@@ -188,6 +216,11 @@ class UpdateService {
       if (error instanceof Error) {
         console.error('[UpdateService] 错误详情:', error.message, error.stack);
       }
+      await logService.logError(
+        'UpdateService',
+        '下载或安装失败',
+        error instanceof Error ? error.stack || error.message : String(error)
+      );
       throw error;
     }
   }
