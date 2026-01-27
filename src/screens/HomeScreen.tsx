@@ -44,9 +44,9 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState<number | null>(null);
   
-  // Calculate FAB bottom position to account for tab bar
-  const tabBarHeight = Platform.OS === 'ios' ? 88 : 70;
-  const fabBottom = tabBarHeight + 16; // 16px spacing above tab bar
+  // Calculate FAB bottom position to account for tab bar and safe area
+  const baseTabBarHeight = Platform.OS === 'ios' ? 88 : 70;
+  const fabBottom = baseTabBarHeight + insets.bottom + 16; // 距离 TabBar 上方 16，并叠加底部安全区域
 
   // 当页面获得焦点时（从其他页面返回时）自动刷新数据
   useFocusEffect(

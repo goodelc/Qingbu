@@ -32,6 +32,8 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 
 function MainTabs() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const bottomInset = insets.bottom || 0;
 
   return (
     <Tab.Navigator
@@ -39,29 +41,30 @@ function MainTabs() {
         headerShown: false,
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
-    tabBarStyle: {
-      backgroundColor: theme.colors.surface,
-      borderTopWidth: 0,
-      elevation: 20, // 更强的阴影效果
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: -4 },
-      shadowOpacity: 0.08,
-      shadowRadius: 15,
-      height: Platform.OS === 'ios' ? 88 : 70, // 适配 iOS 安全区域
-      paddingBottom: Platform.OS === 'ios' ? 30 : 12,
-      paddingTop: 12,
-      borderTopLeftRadius: 32, // 超大圆角
-      borderTopRightRadius: 32,
-      position: 'absolute', // 让内容可以透过去（如果背景透明）
-      bottom: 0,
-      left: 0,
-      right: 0,
-    },
-    tabBarLabelStyle: {
-      fontSize: 10,
-      fontWeight: '700',
-      marginTop: 2,
-    },
+        tabBarStyle: {
+          backgroundColor: theme.colors.surface,
+          borderTopWidth: 0,
+          elevation: 20, // 更强的阴影效果
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.08,
+          shadowRadius: 15,
+          // 基础高度 + 底部安全区域的一部分，避免被系统导航条遮挡
+          height:
+            (Platform.OS === 'ios' ? 88 : 70) + (bottomInset > 0 ? bottomInset / 2 : 0),
+          paddingBottom:
+            Platform.OS === 'ios'
+              ? 30 + bottomInset / 2
+              : 12 + (bottomInset > 0 ? bottomInset / 2 : 0),
+          paddingTop: 12,
+          borderTopLeftRadius: 32, // 超大圆角
+          borderTopRightRadius: 32,
+        },
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '700',
+          marginTop: 2,
+        },
         tabBarIconStyle: {
           marginTop: 4,
         },
