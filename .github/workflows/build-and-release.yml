@@ -227,9 +227,11 @@ jobs:
         id: get_latest_commit
         run: |
           MESSAGE="${{ github.event.head_commit.message }}"
-          echo "message<<'EOF'" >> $GITHUB_OUTPUT
-          echo "$MESSAGE" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          {
+            echo "message<<EOF"
+            echo "$MESSAGE"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
         if: steps.check_skip.outputs.skip != 'true'
