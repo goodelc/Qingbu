@@ -214,14 +214,31 @@ jobs:
           echo "  File: qingbu.apk"
           echo "  Size: $APK_SIZE"
 
+      - name: Read version from package.json
+        if: steps.check_skip.outputs.skip != 'true'
+        id: get_version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Detected version: $VERSION"
+
+      - name: Get latest commit message
+        if: steps.check_skip.outputs.skip != 'true'
+        id: get_latest_commit
+        run: |
+          MESSAGE="${{ github.event.head_commit.message }}"
+          echo "message<<'EOF'" >> $GITHUB_OUTPUT
+          echo "$MESSAGE" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Create GitHub Release
         if: steps.check_skip.outputs.skip != 'true'
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v1.2.0-${{ github.sha }}
-          name: Release v1.2.0
+          tag_name: v${{ steps.get_version.outputs.version }}-${{ github.sha }}
+          name: Release v${{ steps.get_version.outputs.version }}
           body: |
-            ## 轻簿 v1.2.0
+            ## 轻簿 v${{ steps.get_version.outputs.version }}
             
             ### 构建信息
             - Commit: `${{ github.sha }}`
@@ -233,11 +250,7 @@ jobs:
             
             ### 变更说明
             
-            更新
-            
-            ---
-            
-            📝 完整变更日志请查看 [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)
+            ${{ steps.get_latest_commit.outputs.message }}
           files: |
             qingbu.apk
           draft: false
@@ -251,8 +264,8 @@ jobs:
           echo "✅ Release created successfully!"
           echo ""
           echo "📱 Release Information:"
-          echo "  Version: v1.2.0"
-          echo "  Tag: v1.2.0-${{ github.sha }}"
+          echo "  Version: v${{ steps.get_version.outputs.version }}"
+          echo "  Tag: v${{ steps.get_version.outputs.version }}-${{ github.sha }}"
           echo "  APK: qingbu.apk"
           echo ""
           echo "🔗 View release: https://github.com/${{ github.repository }}/releases"

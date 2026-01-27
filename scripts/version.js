@@ -1,21 +1,20 @@
 #!/usr/bin/env node
 
 /**
- * 版本管理脚本
+ * 版本管理脚本（不依赖 CHANGELOG）
  * 
  * 功能：
- * 1. 从 CHANGELOG.md 读取最新版本号
+ * 1. 从 package.json 读取当前版本号
  * 2. 根据参数（patch/minor/major）计算新版本号
  * 3. 更新 package.json 的 version 字段
  * 4. 更新 app.json 的 expo.version 字段
  * 5. 自动递增 app.json 的 android.versionCode
- * 6. 更新 CHANGELOG.md，将 [Unreleased] 改为具体版本号
  */
 
 const fs = require('fs');
 const path = require('path');
 
-const CHANGELOG_PATH = path.join(__dirname, '..', 'CHANGELOG.md');
+const CHANGELOG_PATH = path.join(__dirname, '..', '.github', 'CHANGELOG.md');
 const PACKAGE_JSON_PATH = path.join(__dirname, '..', 'package.json');
 const APP_JSON_PATH = path.join(__dirname, '..', 'app.json');
 
@@ -56,17 +55,8 @@ function bumpVersion(currentVersion, type) {
   return version.toString();
 }
 
-// 从 CHANGELOG.md 读取最新版本号
+// 读取当前版本号（从 package.json）
 function getLatestVersionFromChangelog() {
-  const changelog = fs.readFileSync(CHANGELOG_PATH, 'utf-8');
-  
-  // 查找已发布的版本号（格式：## [x.y.z]）
-  const versionMatch = changelog.match(/^## \[(\d+\.\d+\.\d+)\]/m);
-  if (versionMatch) {
-    return versionMatch[1];
-  }
-  
-  // 如果没有找到已发布版本，从 package.json 读取
   const packageJson = JSON.parse(fs.readFileSync(PACKAGE_JSON_PATH, 'utf-8'));
   return packageJson.version;
 }
@@ -154,7 +144,6 @@ function main() {
     console.log('');
     
     // 更新所有文件
-    updateChangelog(newVersion);
     updatePackageJson(newVersion);
     updateAppJson(newVersion);
     
@@ -162,10 +151,9 @@ function main() {
     console.log('✨ 版本号更新完成！');
     console.log('');
     console.log('下一步:');
-    console.log('  1. 检查 CHANGELOG.md 中的变更说明是否完整');
-    console.log('  2. 提交更改: git add CHANGELOG.md package.json app.json');
-    console.log(`  3. 创建提交: git commit -m "chore: bump version to ${newVersion}"`);
-    console.log('  4. 推送到仓库: git push');
+    console.log('  1. 提交更改: git add package.json app.json');
+    console.log(`  2. 创建提交: git commit -m "chore: bump version to ${newVersion}"`);
+    console.log('  3. 推送到仓库: git push');
     
   } catch (error) {
     console.error('❌ 错误:', error.message);
